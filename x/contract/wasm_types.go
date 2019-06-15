@@ -1,8 +1,8 @@
 package contract
 
 import (
-	"encoding/json"
 	"errors"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -10,9 +10,9 @@ import (
 )
 
 type SendResponse struct {
-	Error string `json:"error"`
-	// Msgs  []sdk.Msg `json:"msgs"`
-	Msgs []json.RawMessage `json:"msgs"`
+	Error string    `json:"error"`
+	Msgs  []sdk.Msg `json:"msgs"`
+	// Msgs []json.RawMessage `json:"msgs"`
 }
 
 func MockCodec() *codec.Codec {

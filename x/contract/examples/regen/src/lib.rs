@@ -126,8 +126,8 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
             {
                 "type":"cosmos-sdk/MsgSend",
                 "value":{
-                    "from_address":"xrn:12677q7hjurt967k7ssrylvcnhl2xjcj0x85ycx",
-                    "to_address":"xrn:1e6tz5v50dnnapvqnjw9n3mnp8gs0tx0rrrjt5s",
+                    "from_address":"cosmos157ez5zlaq0scm9aycwphhqhmg3kws4qusmekll",
+                    "to_address":"cosmos1rjxwm0rwyuldsg00qf5lt26wxzzppjzxs2efdw",
                     "amount":[
                         {
                             "denom":"tree",

@@ -48,7 +48,7 @@ func TestRegenInit(t *testing.T) {
 		}
 	}`
 
-	res, err := Run(store, key, regen, "init", []interface{}{initMsg})
+	res, err := Run(MockCodec(), store, key, regen, "init", []interface{}{initMsg})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -60,7 +60,7 @@ func TestRegenInit(t *testing.T) {
 		invalid: 123
 	}`
 
-	res, err = Run(store, key, regen, "send", []interface{}{badSend})
+	res, err = Run(MockCodec(), store, key, regen, "send", []interface{}{badSend})
 	if err == nil {
 		t.Fatal("Allowed bad json")
 	}
@@ -72,7 +72,7 @@ func TestRegenInit(t *testing.T) {
 		"msg": {}
 	}`
 
-	res, err = Run(store, key, regen, "send", []interface{}{unauthSend})
+	res, err = Run(MockCodec(), store, key, regen, "send", []interface{}{unauthSend})
 	if err == nil {
 		t.Fatal("Allowed no auth")
 	}
@@ -84,7 +84,7 @@ func TestRegenInit(t *testing.T) {
 		"msg": {}
 	}`
 
-	res, err = Run(store, key, regen, "send", []interface{}{goodSend})
+	res, err = Run(MockCodec(), store, key, regen, "send", []interface{}{goodSend})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -93,5 +93,5 @@ func TestRegenInit(t *testing.T) {
 		t.Fatalf("Unexpected result: %v", res)
 	}
 
-	fmt.Println(string(res.Msgs[0]))
+	fmt.Printf("%#v\n", res.Msgs[0])
 }

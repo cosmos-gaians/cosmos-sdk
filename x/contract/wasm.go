@@ -6,6 +6,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -64,7 +65,7 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 
 // Run will execute the named function on the wasm bytes with the passed arguments.
 // Parses json response. Also returns error is the contract sets "error" in json response
-func Run(store sdk.KVStore, key []byte, code []byte, call string, args []interface{}) (*SendResponse, sdk.Error) {
+func Run(cdc *amino.Codec, store sdk.KVStore, key []byte, code []byte, call string, args []interface{}) (*SendResponse, sdk.Error) {
 	curStore = store
 	curKey = key
 	defer func() {
@@ -76,7 +77,7 @@ func Run(store sdk.KVStore, key []byte, code []byte, call string, args []interfa
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())
 	}
-	out, err := ParseResponse(res.(string))
+	out, err := ParseResponse(cdc, res.(string))
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())
 	}

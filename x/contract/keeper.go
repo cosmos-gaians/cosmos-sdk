@@ -127,7 +127,7 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 	}
 
 	// TODO: setup proper db key to expose for Read/Write
-	res, err := Run(store, KeyContractState(addr), codeBz, "init", []interface{}{txtMsg})
+	res, err := Run(k.cdc, store, KeyContractState(addr), codeBz, "init", []interface{}{txtMsg})
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 	}
 
 	// TODO: setup proper db key to expose for Read/Write
-	res, err := Run(store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
+	res, err := Run(k.cdc, store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
 	if err != nil {
 		return err.Result()
 	}
