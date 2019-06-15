@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/delegate"
 	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/spf13/cobra"
 )
@@ -88,7 +87,7 @@ func GetCmdCreateGroup(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-type ActionCreator func(cmd *cobra.Command, args []string) (delegate.Action, error)
+type ActionCreator func(cmd *cobra.Command, args []string) (sdk.Msg, error)
 
 func GetCmdPropose(cdc *codec.Codec, actionCreator ActionCreator) *cobra.Command {
 	var exec bool
