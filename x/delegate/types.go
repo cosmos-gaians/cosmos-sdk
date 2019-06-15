@@ -1,13 +1,13 @@
 package delegate
 
 import (
-	cosmos "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/types"
 )
 
 type Action interface {
-	cosmos.Msg
-	Actor() cosmos.AccAddress
+	sdk.Msg
+	Actor() sdk.AccAddress
 	RequiredCapabilities() []Capability
 }
 
@@ -21,19 +21,19 @@ type Capability interface {
 
 type ActorCapability struct {
 	Capability Capability
-	Actor      cosmos.AccAddress
+	Actor      sdk.AccAddress
 }
 
 type Keeper interface {
 	// Store capabilities under the key actor-id/capability-id
 	// Grant stores a root flag, and delegate
-	//GrantRootCapability(ctx cosmos.Context, actor cosmos.AccAddress, capability Capability)
-	//RevokeRootCapability(ctx cosmos.Context, actor cosmos.AccAddress, capability Capability)
-	Delegate(ctx cosmos.Context, grantor cosmos.AccAddress, grantee cosmos.AccAddress, capability ActorCapability) bool
-	Undelegate(ctx cosmos.Context, grantor cosmos.AccAddress, grantee cosmos.AccAddress, capability ActorCapability)
-	HasCapability(ctx cosmos.Context, actor cosmos.AccAddress, capability ActorCapability) bool
+	//GrantRootCapability(ctx sdk.Context, actor sdk.AccAddress, capability Capability)
+	//RevokeRootCapability(ctx sdk.Context, actor sdk.AccAddress, capability Capability)
+	Delegate(ctx sdk.Context, grantor sdk.AccAddress, grantee sdk.AccAddress, capability ActorCapability) bool
+	Undelegate(ctx sdk.Context, grantor sdk.AccAddress, grantee sdk.AccAddress, capability ActorCapability)
+	HasCapability(ctx sdk.Context, actor sdk.AccAddress, capability ActorCapability) bool
 }
 
 type Dispatcher interface {
-	DispatchAction(ctx cosmos.Context, actor cosmos.AccAddress, action Action) cosmos.Result
+	DispatchAction(ctx sdk.Context, actor sdk.AccAddress, action Action) sdk.Result
 }
