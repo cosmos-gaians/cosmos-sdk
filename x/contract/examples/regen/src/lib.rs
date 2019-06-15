@@ -60,8 +60,12 @@ pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
         params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
     }
 
-    let params: MsgCreateContract =
-        from_slice(&params).expect("Could not parse MsgCreateContract json.");
+    let pres: serde_json_core::de::Result<MsgCreateContract> = from_slice(&params);
+    if pres.is_err() {
+        return CString::new(r#"{"error": "Could not parse MsgCreateContract json."}"#).unwrap().into_raw()
+    }
+    let params = pres.unwrap();
+
     let state: String<U1024> = to_string(&RegenState {
         verifier: params.init_msg.verifier,
         beneficiary: params.init_msg.beneficiary,
@@ -73,7 +77,7 @@ pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
         write(CString::new(state.as_bytes()).unwrap().into_raw());
     }
 
-    CString::new("").unwrap().into_raw()
+    CString::new(r#"{"msgs": []}"#).unwrap().into_raw()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -109,7 +113,7 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
     let state = sres.unwrap();
 
     if params.sender == state.verifier {
-        CString::new(r#"{"result": "Send tx goes here !!!"}"#).unwrap().into_raw()
+        CString::new(r#"{"msgs": ["foo"]}"#).unwrap().into_raw()
     } else {
         CString::new(r#"{"error": "Unauthorized"}"#).unwrap().into_raw()
     }

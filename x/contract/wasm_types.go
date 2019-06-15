@@ -6,8 +6,8 @@ import (
 )
 
 type SendResponse struct {
-	Error  string `json:"error"`
-	Result string `json:"result"`
+	Error string   `json:"error"`
+	Msgs  []string `json:"msgs"`
 }
 
 func ParseResponse(raw string) (*SendResponse, error) {

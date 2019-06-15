@@ -43,8 +43,12 @@ func TestRegenInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	if res.(string) != "" {
-		t.Fatalf("Unexpected result: %d", res)
+	out, err := ParseResponse(res.(string))
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	if len(out.Msgs) != 0 {
+		t.Fatalf("Unexpected result: %v", out)
 	}
 
 	badSend := `{
@@ -86,13 +90,12 @@ func TestRegenInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	out, err := ParseResponse(res.(string))
+	out, err = ParseResponse(res.(string))
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 	// This is placeholder on success
-	if out.Result != "Send tx goes here !!!" {
-		t.Fatalf("Unexpected result: %s", out.Result)
+	if len(out.Msgs) != 1 {
+		t.Fatalf("Unexpected result: %v", out)
 	}
-
 }
