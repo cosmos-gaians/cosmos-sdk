@@ -53,7 +53,7 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 	deallocate, ok := instance.Exports["deallocate"]
 	if ok {
 		lengthOfOutput := nth
-		deallocate(outputPointer, lengthOfOutput)
+		_, _ = deallocate(outputPointer, lengthOfOutput)
 	}
 
 	// TODO
