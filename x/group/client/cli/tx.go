@@ -144,7 +144,7 @@ func getRunVote(cdc *codec.Codec, approve bool) func(cmd *cobra.Command, args []
 		id := group.MustDecodeProposalIDBech32(args[0])
 
 		msg := group.MsgVote{
-			ProposalId: id,
+			ProposalID: id,
 			Voter:      account,
 			Vote:       approve,
 		}
@@ -196,7 +196,7 @@ func GetCmdTryExec(cdc *codec.Codec) *cobra.Command {
 			id := group.MustDecodeProposalIDBech32(args[0])
 
 			msg := group.MsgTryExecuteProposal{
-				ProposalId: id,
+				ProposalID: id,
 				Signer:     account,
 			}
 			err := msg.ValidateBasic()
@@ -230,7 +230,7 @@ func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 			id := group.MustDecodeProposalIDBech32(args[0])
 
 			msg := group.MsgWithdrawProposal{
-				ProposalId: id,
+				ProposalID: id,
 				Proposer:   account,
 			}
 			err := msg.ValidateBasic()

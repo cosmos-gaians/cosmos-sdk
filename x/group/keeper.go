@@ -11,11 +11,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/delegation"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/bech32"
-	"golang.org/x/crypto/blake2b"
 )
 
 type Keeper struct {
-	groupStoreKey sdk.StoreKey
+	storeKey      sdk.StoreKey
 	cdc           *codec.Codec
 	accountKeeper auth.AccountKeeper
 	dispatcher    delegation.Keeper
@@ -40,21 +39,22 @@ func (acc *GroupAccount) SetPubKey(pubKey crypto.PubKey) error {
 
 var (
 	keyNewGroupID = []byte("newGroupID")
+	keyNewProposalID = []byte("newProposalID")
 )
 
 func KeyGroupID(id sdk.AccAddress) []byte {
-	return []byte(fmt.Sprintf("g/%d", id))
+	return []byte(fmt.Sprintf("g/%x", id))
 }
 
-func KeyProposal(id []byte) []byte {
-	return []byte(fmt.Sprintf("p/%d", id))
+func KeyProposal(id ProposalID) []byte {
+	return []byte(fmt.Sprintf("p/%x", id))
 }
 
 func (keeper Keeper) GetGroupInfo(ctx sdk.Context, id sdk.AccAddress) (info Group, err sdk.Error) {
 	if len(id) < 1 || id[0] != 'G' {
 		return info, sdk.ErrUnknownRequest("Not a valid group")
 	}
-	store := ctx.KVStore(keeper.groupStoreKey)
+	store := ctx.KVStore(keeper.storeKey)
 	bz := store.Get(KeyGroupID(id))
 	if bz == nil {
 		return info, sdk.ErrUnknownRequest("Not found")
@@ -67,7 +67,7 @@ func (keeper Keeper) GetGroupInfo(ctx sdk.Context, id sdk.AccAddress) (info Grou
 	return info, nil
 }
 
-func AddrFromUint64(id uint64) sdk.AccAddress {
+func addrFromUint64(id uint64) sdk.AccAddress {
 	addr := make([]byte, binary.MaxVarintLen64+1)
 	addr[0] = 'G'
 	n := binary.PutUvarint(addr[1:], id)
@@ -75,7 +75,7 @@ func AddrFromUint64(id uint64) sdk.AccAddress {
 }
 
 func (keeper Keeper) getNewGroupId(ctx sdk.Context) sdk.AccAddress {
-	store := ctx.KVStore(keeper.groupStoreKey)
+	store := ctx.KVStore(keeper.storeKey)
 	bz := store.Get(keyNewGroupID)
 	var groupId uint64 = 0
 	if bz != nil {
@@ -83,7 +83,7 @@ func (keeper Keeper) getNewGroupId(ctx sdk.Context) sdk.AccAddress {
 	}
 	bz = keeper.cdc.MustMarshalBinaryBare(groupId + 1)
 	store.Set(keyNewGroupID, bz)
-	return AddrFromUint64(groupId)
+	return addrFromUint64(groupId)
 }
 
 func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, error) {
@@ -103,7 +103,7 @@ func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, e
 }
 
 func (keeper Keeper) setGroupInfo(ctx sdk.Context, id sdk.AccAddress, info Group) {
-	store := ctx.KVStore(keeper.groupStoreKey)
+	store := ctx.KVStore(keeper.storeKey)
 	bz, err := keeper.cdc.MarshalBinaryBare(info)
 	if err != nil {
 		panic(err)
@@ -156,15 +156,17 @@ const (
 	Bech32Prefix = "proposal"
 )
 
-func mustEncodeProposalIDBech32(id []byte) string {
-	str, err := bech32.ConvertAndEncode(Bech32Prefix, id)
+func mustEncodeProposalIDBech32(id ProposalID) string {
+	bz := make([]byte, binary.MaxVarintLen64+1)
+	n := binary.PutUvarint(bz[0:], uint64(id))
+	str, err := bech32.ConvertAndEncode(Bech32Prefix, bz[:n])
 	if err != nil {
 		panic(err)
 	}
 	return str
 }
 
-func MustDecodeProposalIDBech32(bech string) []byte {
+func MustDecodeProposalIDBech32(bech string) ProposalID {
 	hrp, data, err := bech32.DecodeAndConvert(bech)
 	if err != nil {
 		panic(err)
@@ -172,26 +174,27 @@ func MustDecodeProposalIDBech32(bech string) []byte {
 	if hrp != Bech32Prefix {
 		panic(fmt.Sprintf("Expected bech32 prefix %s", Bech32Prefix))
 	}
-	return data
+    id, err := binary.ReadUvarint(bytes.NewBuffer(data))
+    if err != nil {
+    	panic(err)
+	}
+    return ProposalID(id)
 }
 
-func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action sdk.Msg) ([]byte, sdk.Result) {
-	// TODO
-	//canHandle, res := keeper.handler.CheckProposal(ctx, action)
-	//if !canHandle {
-	//	return nil, sdk.ErrUnknownRequest("unknown proposal type").Result()
-	//}
-	//if res.Code != sdk.CodeOK {
-	//	return nil, res
-	//}
-
-	store := ctx.KVStore(keeper.groupStoreKey)
-	hashBz := blake2b.Sum256(action.GetSignBytes())
-	id := hashBz[:]
-	bech := mustEncodeProposalIDBech32(id)
-	if store.Has(id) {
-		return id, sdk.ErrUnknownRequest(fmt.Sprintf("proposal %s already exists", bech)).Result()
+func (keeper Keeper) getNewProposalId(ctx sdk.Context) ProposalID {
+	store := ctx.KVStore(keeper.storeKey)
+	bz := store.Get(keyNewProposalID)
+	var id uint64 = 0
+	if bz != nil {
+		keeper.cdc.MustUnmarshalBinaryBare(bz, &id)
 	}
+	bz = keeper.cdc.MustMarshalBinaryBare(id + 1)
+	store.Set(keyNewProposalID, bz)
+	return ProposalID(id)
+}
+
+func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action sdk.Msg) (ProposalID, sdk.Result) {
+	id := keeper.getNewProposalId(ctx)
 
 	prop := Proposal{
 		Proposer:  proposer,
@@ -208,8 +211,8 @@ func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action sd
 	return id, res
 }
 
-func (keeper Keeper) storeProposal(ctx sdk.Context, id []byte, proposal *Proposal) {
-	store := ctx.KVStore(keeper.groupStoreKey)
+func (keeper Keeper) storeProposal(ctx sdk.Context, id ProposalID, proposal *Proposal) {
+	store := ctx.KVStore(keeper.storeKey)
 	bz, err := keeper.cdc.MarshalBinaryBare(proposal)
 	if err != nil {
 		panic(err)
@@ -218,8 +221,8 @@ func (keeper Keeper) storeProposal(ctx sdk.Context, id []byte, proposal *Proposa
 	store.Set(KeyProposal(id), bz)
 }
 
-func (keeper Keeper) GetProposal(ctx sdk.Context, id []byte) (proposal *Proposal, err sdk.Error) {
-	store := ctx.KVStore(keeper.groupStoreKey)
+func (keeper Keeper) GetProposal(ctx sdk.Context, id ProposalID) (proposal *Proposal, err sdk.Error) {
+	store := ctx.KVStore(keeper.storeKey)
 	bz := store.Get(KeyProposal(id))
 	proposal = &Proposal{}
 	marshalErr := keeper.cdc.UnmarshalBinaryBare(bz, proposal)
@@ -229,7 +232,7 @@ func (keeper Keeper) GetProposal(ctx sdk.Context, id []byte) (proposal *Proposal
 	return proposal, nil
 }
 
-func (keeper Keeper) Vote(ctx sdk.Context, proposalId []byte, voter sdk.AccAddress, yesNo bool) sdk.Result {
+func (keeper Keeper) Vote(ctx sdk.Context, proposalId ProposalID, voter sdk.AccAddress, yesNo bool) sdk.Result {
 	proposal, err := keeper.GetProposal(ctx, proposalId)
 
 	if err != nil {
@@ -297,7 +300,7 @@ func (keeper Keeper) Vote(ctx sdk.Context, proposalId []byte, voter sdk.AccAddre
 	}
 }
 
-func (keeper Keeper) TryExecute(ctx sdk.Context, proposalId []byte) sdk.Result {
+func (keeper Keeper) TryExecute(ctx sdk.Context, proposalId ProposalID) sdk.Result {
 	proposal, err := keeper.GetProposal(ctx, proposalId)
 
 	if err != nil {
@@ -311,7 +314,7 @@ func (keeper Keeper) TryExecute(ctx sdk.Context, proposalId []byte) sdk.Result {
 	res := keeper.dispatcher.DispatchAction(ctx, proposal.Group, proposal.Action)
 
 	if res.Code == sdk.CodeOK {
-		store := ctx.KVStore(keeper.groupStoreKey)
+		store := ctx.KVStore(keeper.storeKey)
 		store.Delete(KeyProposal(proposalId))
 		res.Tags = res.Tags.AppendTag("action", proposal.Action.Type())
 	}
@@ -319,7 +322,7 @@ func (keeper Keeper) TryExecute(ctx sdk.Context, proposalId []byte) sdk.Result {
 	return res
 }
 
-func (keeper Keeper) Withdraw(ctx sdk.Context, proposalId []byte, proposer sdk.AccAddress) sdk.Result {
+func (keeper Keeper) Withdraw(ctx sdk.Context, proposalId ProposalID, proposer sdk.AccAddress) sdk.Result {
 	proposal, err := keeper.GetProposal(ctx, proposalId)
 
 	if err != nil {
@@ -336,7 +339,7 @@ func (keeper Keeper) Withdraw(ctx sdk.Context, proposalId []byte, proposer sdk.A
 		}
 	}
 
-	store := ctx.KVStore(keeper.groupStoreKey)
+	store := ctx.KVStore(keeper.storeKey)
 	store.Delete(KeyProposal(proposalId))
 
 	return sdk.Result{Code: sdk.CodeOK,

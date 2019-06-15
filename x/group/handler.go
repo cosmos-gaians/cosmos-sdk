@@ -56,13 +56,13 @@ func handleMsgCreateProposal(ctx sdk.Context, keeper Keeper, msg MsgCreatePropos
 }
 
 func handleMsgVote(ctx sdk.Context, keeper Keeper, msg MsgVote) sdk.Result {
-	return keeper.Vote(ctx, msg.ProposalId, msg.Voter, msg.Vote)
+	return keeper.Vote(ctx, msg.ProposalID, msg.Voter, msg.Vote)
 }
 
 func handleMsgTryExecuteProposal(ctx sdk.Context, keeper Keeper, msg MsgTryExecuteProposal) sdk.Result {
-	return keeper.TryExecute(ctx, msg.ProposalId)
+	return keeper.TryExecute(ctx, msg.ProposalID)
 }
 
 func handleMsgWithdrawProposal(ctx sdk.Context, keeper Keeper, msg MsgWithdrawProposal) sdk.Result {
-	return keeper.Withdraw(ctx, msg.ProposalId, msg.Proposer)
+	return keeper.Withdraw(ctx, msg.ProposalID, msg.Proposer)
 }

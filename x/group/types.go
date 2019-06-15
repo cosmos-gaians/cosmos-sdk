@@ -35,3 +35,5 @@ type Proposal struct {
 	Action    sdk.Msg          `json:"action"`
 	Approvers []sdk.AccAddress `json:"approvers,omitempty"`
 }
+
+type ProposalID uint64

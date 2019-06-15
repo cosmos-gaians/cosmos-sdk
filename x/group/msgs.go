@@ -35,18 +35,18 @@ type MsgCreateProposal struct {
 }
 
 type MsgVote struct {
-	ProposalId []byte         `json:"proposal_id"`
+	ProposalID ProposalID         `json:"proposal_id"`
 	Voter      sdk.AccAddress `json:"voter"`
 	Vote       bool           `json:"vote"`
 }
 
 type MsgTryExecuteProposal struct {
-	ProposalId []byte         `json:"proposal_id"`
+	ProposalID ProposalID         `json:"proposal_id"`
 	Signer     sdk.AccAddress `json:"signer"`
 }
 
 type MsgWithdrawProposal struct {
-	ProposalId []byte         `json:"proposal_id"`
+	ProposalID ProposalID         `json:"proposal_id"`
 	Proposer   sdk.AccAddress `json:"proposer"`
 }
 
