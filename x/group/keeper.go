@@ -92,7 +92,23 @@ func (keeper Keeper) GetGroups(ctx sdk.Context) []Group {
 // key: g/%x/%x
 // g/[member address]/[group id] -> [group id]
 func (keeper Keeper) GetGroupsByMemberAddress(ctx sdk.Context, memberAddr sdk.AccAddress) []Group {
-	return nil
+	prefix := fmt.Sprintf("g/%x/", memberAddr)
+	prefixBytes := []byte(prefix)
+	store := ctx.KVStore(keeper.storeKey)
+	var groups []Group
+	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var groupID sdk.AccAddress
+		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &groupID)
+		group, err := keeper.GetGroupInfo(ctx, groupID)
+		if err != nil {
+			panic(err)
+		}
+		groups = append(groups, group)
+	}
+
+	return groups
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
