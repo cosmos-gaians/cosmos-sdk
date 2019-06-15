@@ -17,10 +17,10 @@ func Read(filename string) ([]byte, error) {
 	return wasm.ReadBytes(filename)
 }
 
-// ReturnString can be called by a go function provided into Imports
+// WasmString can be called by a go function provided into Imports
 // It will allocate space in wasm, copy the string there, and return a pointer
 // The pointer can be returned to the wasm caller to receive the string
-func ReturnString(res string) int32 {
+func WasmString(res string) int32 {
 	return prepareString(*curInstance, res)
 }
 
