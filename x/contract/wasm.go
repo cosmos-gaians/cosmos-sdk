@@ -54,8 +54,18 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 }
 
 // Run will execute the named function on the wasm bytes with the passed arguments.
+// Parses json response. Also returns error is the contract sets "error" in json response
+func Run(code []byte, call string, args []interface{}) (*SendResponse, error) {
+	res, err := run(code, call, args, AsString)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResponse(res.(string))
+}
+
+// run will execute the named function on the wasm bytes with the passed arguments.
 // Returns the result or an error
-func Run(code []byte, call string, args []interface{}, parse ResultParser) (interface{}, error) {
+func run(code []byte, call string, args []interface{}, parse ResultParser) (interface{}, error) {
 	imports, err := wasmImports()
 	if err != nil {
 		return nil, errors.Wrap(err, "creating imports")
