@@ -1,0 +1,15 @@
+[package]
+name = "regen"
+version = "0.1.0"
+authors = ["jehan <jehan@hotmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+# [profile.release]
+# lto = true
+
+[dependencies]
+serde-json-core = { git = "https://github.com/japaric/serde-json-core" }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+heapless = "0.4.0"
