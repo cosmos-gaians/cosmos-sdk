@@ -5,6 +5,12 @@ import (
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
+// Defines delegation module constants
+const (
+	RouterKey    = ModuleName
+	QuerierRoute = ModuleName
+)
+
 type Capability interface {
 	// MsgType returns the type of Msg's that this capability can accept
 	MsgType() sdk.Msg
@@ -12,4 +18,3 @@ type Capability interface {
 	// so provides an upgraded capability grant
 	Accept(msg sdk.Msg, block abci.Header) (allow bool, updated Capability, delete bool)
 }
-

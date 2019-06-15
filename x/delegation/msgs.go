@@ -2,8 +2,9 @@ package delegation
 
 import (
 	"encoding/json"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"time"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type MsgExecDelegatedAction struct {
@@ -16,11 +17,11 @@ func (msg MsgExecDelegatedAction) Route() string {
 }
 
 func (msg MsgExecDelegatedAction) Type() string {
-    return "exec_delegated"
+	return "exec_delegated"
 }
 
 func (msg MsgExecDelegatedAction) ValidateBasic() sdk.Error {
-    return nil
+	return nil
 }
 
 func (msg MsgExecDelegatedAction) GetSignBytes() []byte {
@@ -38,20 +39,20 @@ func (msg MsgExecDelegatedAction) GetSigners() []sdk.AccAddress {
 type MsgDelegate struct {
 	Granter    sdk.AccAddress `json:"granter"`
 	Grantee    sdk.AccAddress `json:"grantee"`
-	Capability Capability `json:"capability"`
-	Expiration time.Time `json:"expiration"`
+	Capability Capability     `json:"capability"`
+	Expiration time.Time      `json:"expiration"`
 }
 
 func (msg MsgDelegate) Route() string {
-    return "delegation"
+	return "delegation"
 }
 
 func (msg MsgDelegate) Type() string {
-    return "delegate"
+	return "delegate"
 }
 
 func (msg MsgDelegate) ValidateBasic() sdk.Error {
-    return nil
+	return nil
 }
 
 func (msg MsgDelegate) GetSignBytes() []byte {
@@ -63,13 +64,13 @@ func (msg MsgDelegate) GetSignBytes() []byte {
 }
 
 func (msg MsgDelegate) GetSigners() []sdk.AccAddress {
-    return []sdk.AccAddress{msg.Granter}
+	return []sdk.AccAddress{msg.Granter}
 }
 
 type MsgRevoke struct {
 	Granter sdk.AccAddress `json:"granter"`
 	Grantee sdk.AccAddress `json:"grantee"`
-	MsgType sdk.Msg `json:"msg_type"`
+	MsgType sdk.Msg        `json:"msg_type"`
 }
 
 func (msg MsgRevoke) Route() string {
@@ -77,11 +78,11 @@ func (msg MsgRevoke) Route() string {
 }
 
 func (msg MsgRevoke) Type() string {
-    return "revoke"
+	return "revoke"
 }
 
 func (msg MsgRevoke) ValidateBasic() sdk.Error {
-    return nil
+	return nil
 }
 
 func (msg MsgRevoke) GetSignBytes() []byte {
@@ -95,4 +96,3 @@ func (msg MsgRevoke) GetSignBytes() []byte {
 func (msg MsgRevoke) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Granter}
 }
-
