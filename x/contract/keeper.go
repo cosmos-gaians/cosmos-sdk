@@ -86,28 +86,28 @@ type contractMsg struct {
 	SentFunds       int64           `json:"sent_funds"`
 }
 
-func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId CodeID, initData []byte, coins sdk.Coins) (sdk.AccAddress, sdk.Error) {
+func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId CodeID, initData []byte, coins sdk.Coins) (sdk.AccAddress, sdk.Result) {
 	// Create a contract address
 	addr := k.getNewContractId(ctx)
 
 	// Create a contract account
 	existingAcc := k.accountKeeper.GetAccount(ctx, addr)
 	if existingAcc != nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("account with address %s already exists", addr.String()))
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("account with address %s already exists", addr.String())).Result()
 	}
 
 	// Deposit initial contract funds
 	k.accountKeeper.SetAccount(ctx, &auth.BaseAccount{Address: addr})
 	err := k.bankKeeper.SendCoins(ctx, creator, addr, coins)
 	if err != nil {
-		return nil, err
+		return nil, err.Result()
 	}
 
 	// Retrieve contract code
 	store := ctx.KVStore(k.storeKey)
 	codeBz := store.Get(KeyCode(codeId))
 	if len(codeBz) == 0 {
-		return nil, sdk.ErrUnknownRequest("can't find contract code")
+		return nil, sdk.ErrUnknownRequest("can't find contract code").Result()
 	}
 
 	// Store contract code ID
@@ -123,20 +123,24 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 	}
 	txtMsg, stdErr := json.Marshal(msg)
 	if stdErr != nil {
-		return nil, sdk.ErrUnknownRequest(stdErr.Error())
+		return nil, sdk.ErrUnknownRequest(stdErr.Error()).Result()
 	}
 
 	// TODO: setup proper db key to expose for Read/Write
 	res, err := Run(k.cdc, store, KeyContractState(addr), codeBz, "init", []interface{}{txtMsg})
 	if err != nil {
-		return nil, err
+		return nil, err.Result()
 	}
 
-	if len(res.Msgs) != 0 {
-		panic("foo")
+	out := sdk.Result{}
+	for _, msg := range res.Msgs {
+		out = k.delegationKeeper.DispatchAction(ctx, addr, msg)
+		if !out.IsOK() {
+			return nil, out
+		}
 	}
 
-	return addr, nil
+	return addr, out
 }
 
 func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sdk.AccAddress, msg []byte, coins sdk.Coins) sdk.Result {
@@ -169,20 +173,17 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest(stdErr.Error()).Result()
 	}
 
-	// TODO: setup proper db key to expose for Read/Write
 	res, err := Run(k.cdc, store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
 	if err != nil {
 		return err.Result()
 	}
 
-	if len(res.Msgs) != 1 {
-		panic("foo")
+	out := sdk.Result{}
+	for _, msg := range res.Msgs {
+		out = k.delegationKeeper.DispatchAction(ctx, contract, msg)
+		if !out.IsOK() {
+			return out
+		}
 	}
-	// TODO: execute messages
-
-	// Retrieve state
-	//stateBz := store.Get(KeyContractState(contract))
-
-	// TODO: what is sdk success?????
-	return sdk.Result{}
+	return out
 }

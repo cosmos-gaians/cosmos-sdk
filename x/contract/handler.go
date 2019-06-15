@@ -71,11 +71,10 @@ func handleMsgStoreCode(ctx sdk.Context, keeper Keeper, msg MsgStoreCode) sdk.Re
 }
 
 func handleMsgCreateContract(ctx sdk.Context, keeper Keeper, msg MsgCreateContract) sdk.Result {
-	id, err := keeper.CreateContract(ctx, msg.Sender, msg.Code, msg.InitMsg, msg.InitFunds)
-	if err != nil {
-		return err.Result()
+	id, res := keeper.CreateContract(ctx, msg.Sender, msg.Code, msg.InitMsg, msg.InitFunds)
+	if !res.IsOK() {
+		return res
 	}
-	res := sdk.Result{}
 	res.Tags = res.Tags.AppendTag("contract.address", id.String())
 	return res
 }
