@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/delegate"
+	"github.com/cosmos/cosmos-sdk/x/delegation"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -25,7 +25,7 @@ type CapabilityUpdateGroup struct {
 	GroupIDs []sdk.AccAddress `json:"group_ids"`
 }
 
-var _ delegate.Capability = CapabilityUpdateGroup{}
+var _ delegation.Capability = CapabilityUpdateGroup{}
 
 type MsgCreateProposal struct {
 	Proposer sdk.AccAddress `json:"proposer"`
@@ -194,7 +194,7 @@ func (cap CapabilityUpdateGroup) MsgType() sdk.Msg {
 	return MsgUpdateGroup{}
 }
 
-func (cap CapabilityUpdateGroup) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegate.Capability, delete bool) {
+func (cap CapabilityUpdateGroup) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegation.Capability, delete bool) {
 	switch msg := msg.(type) {
 	case MsgUpdateGroup:
 		fmt.Println(msg.Route())

@@ -1,4 +1,4 @@
-package delegate
+package delegation
 
 import sdk "github.com/cosmos/cosmos-sdk/types"
 

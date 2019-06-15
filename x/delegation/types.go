@@ -1,4 +1,4 @@
-package delegate
+package delegation
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,7 +15,7 @@ type Capability interface {
 }
 
 type Keeper interface {
-	Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time) bool
+	Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time)
 	Undelegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg)
 	GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) Capability
 }

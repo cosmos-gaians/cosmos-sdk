@@ -1,6 +1,7 @@
-package delegate
+package delegation
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,26 +11,19 @@ import (
 type keeper struct {
 	storeKey sdk.StoreKey
 	cdc      *codec.Codec
+	router sdk.Router
 }
 
-var _ Keeper = keeper{}
+var _ Dispatcher = keeper{}
 
 type capabilityGrant struct {
-	//// all the actors that delegated this capability to the actor
-	//// the capability should be cleared if root is false and this array is cleared
-	//delegatedBy []sdk.AccAddress
-	//
-	//// whenever this capability is undelegated or revoked, these delegations
-	//// need to be cleared recursively
-	//delegatedTo []sdk.AccAddress
-
 	capability Capability
 
 	expiration time.Time
 }
 
-func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec) Keeper {
-	return &keeper{storeKey: storeKey, cdc: cdc}
+func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, router sdk.Router) Keeper {
+	return &keeper{storeKey, cdc, router}
 }
 
 func ActorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, msg sdk.Msg) []byte {
@@ -46,24 +40,11 @@ func (k keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, gran
 	return grant, true
 }
 
-func (k keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, grantor sdk.AccAddress, capability Capability, expiration time.Time) bool {
-	//store := ctx.KVStore(k.storeKey)
-	//grantorGrant, found := k.getCapabilityGrant(ctx, grantor, capability)
-	//if !found {
-	//	return false
-	//}
-	//if !bytes.Equal(grantor, actor) {
-	//
-	//}
-	//grantorGrant.delegatedTo = append(grantorGrant.delegatedTo, grantee)
-	//store.Set(ActorCapabilityKey(capability, grantor), k.cdc.MustMarshalBinaryBare(grantorGrant))
-	//granteeGrant, _ := k.getCapabilityGrant(ctx, grantee, capability)
-	//granteeGrant.delegatedBy = append(granteeGrant.delegatedBy, grantor)
-	//store.Set(ActorCapabilityKey(capability, grantee), k.cdc.MustMarshalBinaryBare(granteeGrant))
-	//return true
-	panic("TODO")
+func (k keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, grantor sdk.AccAddress, capability Capability, expiration time.Time) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(capabilityGrant{capability, expiration})
+	store.Set(ActorCapabilityKey(grantee, grantor, capability.MsgType()), bz)
 }
-
 
 func (k keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
 	grant, found := k.getCapabilityGrant(ctx, grantee, granter, updated.MsgType())
@@ -71,11 +52,11 @@ func (k keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 		return
 	}
 	grant.capability = updated
-
 }
 
 func (k keeper) Undelegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
-	panic("implement me")
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(ActorCapabilityKey(grantee, granter, msgType))
 }
 
 func (k keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) Capability {
@@ -83,9 +64,34 @@ func (k keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	if !found {
 		return nil
 	}
-	if grant.expiration.Before(ctx.BlockHeader().Time) {
+	if !grant.expiration.IsZero() && grant.expiration.Before(ctx.BlockHeader().Time) {
 		k.Undelegate(ctx, grantee, granter, msgType)
 		return nil
 	}
 	return grant.capability
 }
+
+func (k keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		return sdk.ErrUnknownRequest("can only dispatch a delegated msg with 1 signer").Result()
+	}
+	actor := signers[0]
+	if !bytes.Equal(actor, sender) {
+		cap := k.GetCapability(ctx, sender, actor, msg)
+		if cap == nil {
+			return sdk.ErrUnauthorized("unauthorized").Result()
+		}
+		allow, updated, delete := cap.Accept(msg, ctx.BlockHeader())
+		if !allow {
+			return sdk.ErrUnauthorized("unauthorized").Result()
+		}
+		if delete {
+			k.Undelegate(ctx, sender, actor, msg)
+		} else if updated != nil {
+			k.update(ctx, sender, actor, updated)
+		}
+	}
+	return k.router.Route(msg.Route())(ctx, msg)
+}
+

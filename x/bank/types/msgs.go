@@ -2,7 +2,7 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/delegate"
+	"github.com/cosmos/cosmos-sdk/x/delegation"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -60,8 +60,8 @@ func (msg MsgSend) Actor() sdk.AccAddress {
 	return msg.FromAddress
 }
 
-func (msg MsgSend) RequiredCapabilities() []delegate.Capability {
-	return []delegate.Capability{SendCapability{SpendLimit: msg.Amount}}
+func (msg MsgSend) RequiredCapabilities() []delegation.Capability {
+	return []delegation.Capability{SendCapability{SpendLimit: msg.Amount}}
 }
 
 type SendCapability struct {
@@ -71,13 +71,13 @@ type SendCapability struct {
 	SpendLimit sdk.Coins
 }
 
-var _ delegate.Capability = SendCapability{}
+var _ delegation.Capability = SendCapability{}
 
 func (cap SendCapability) MsgType() sdk.Msg {
     return MsgSend{}
 }
 
-func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegate.Capability, delete bool) {
+func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegation.Capability, delete bool) {
 	switch msg := msg.(type) {
 	case MsgSend:
 		left, valid := cap.SpendLimit.SafeSub(msg.Amount)

@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/delegate"
+	"github.com/cosmos/cosmos-sdk/x/delegation"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/bech32"
 	"golang.org/x/crypto/blake2b"
@@ -17,10 +17,10 @@ type Keeper struct {
 	groupStoreKey sdk.StoreKey
 	cdc           *codec.Codec
 	accountKeeper auth.AccountKeeper
-	dispatcher  delegate.Dispatcher
+	dispatcher    delegation.Dispatcher
 }
 
-func NewKeeper(groupStoreKey sdk.StoreKey, cdc *codec.Codec, accountKeeper auth.AccountKeeper, dispatcher delegate.Dispatcher) Keeper {
+func NewKeeper(groupStoreKey sdk.StoreKey, cdc *codec.Codec, accountKeeper auth.AccountKeeper, dispatcher delegation.Dispatcher) Keeper {
 	return Keeper{
 		groupStoreKey,
 		cdc,
