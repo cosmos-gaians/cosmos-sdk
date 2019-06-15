@@ -62,7 +62,7 @@ func handleMsgStoreCode(ctx sdk.Context, keeper Keeper, msg MsgStoreCode) sdk.Re
 	}
 	res := sdk.Result{}
 	bch, e := EncodeBech32CodeID(id)
-	if err != nil {
+	if e != nil {
 		return sdk.ErrUnknownRequest(e.Error()).Result()
 	}
 	res.Tags = res.Tags.AppendTag("contract.code-id", bch)
