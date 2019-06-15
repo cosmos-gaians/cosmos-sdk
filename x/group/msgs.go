@@ -3,6 +3,7 @@ package group
 import (
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/delegate"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -196,7 +197,7 @@ func (cap CapabilityUpdateGroup) MsgType() sdk.Msg {
 func (cap CapabilityUpdateGroup) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegate.Capability, delete bool) {
 	switch msg := msg.(type) {
 	case MsgUpdateGroup:
-
+		fmt.Println(msg.Route())
 		return true, nil, false
 	default:
 		panic("Unexpected")
