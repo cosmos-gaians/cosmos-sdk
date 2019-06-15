@@ -8,6 +8,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// // GetQueryCmd returns the cli query commands for this module
+// func (mc ModuleClient) GetQueryCmd() *cobra.Command {
+// 	agentQueryCmd := &cobra.Command{
+// 		Use:   "group",
+// 		Short: "Querying commands for the group module",
+// 	}
+
+// 	agentQueryCmd.AddCommand(client.GetCommands(
+// 		agentcmd.GetCmdGetGroup(mc.storeKey, mc.cdc),
+// 		agentcmd.GetCmdGetProposal(mc.storeKey, mc.cdc),
+// 	)...)
+
+// 	return agentQueryCmd
+// }
+
 // GetCmdGroup queries information about an group
 func GetCmdGetGroup(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{

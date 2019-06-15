@@ -11,7 +11,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 
-	// "github.com/cosmos/cosmos-sdk/x/group/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/group/client/rest"
 	abci "github.com/tendermint/tendermint/abci/types"
 )
@@ -68,7 +67,7 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // get the root query command of this module
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	// return cli.GetQueryCmd(cdc)
-	panic("need to add cli.GetQueryCmd(cdc)")
+	return nil
 }
 
 // AppModule defines external data for the module

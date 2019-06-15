@@ -10,6 +10,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/spf13/cobra"
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
 // GetTxCmd returns the transaction commands for this module
@@ -27,7 +28,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	// 	agentcmd.GetCmdWithdraw(mc.cdc),
 	// )...)
 
-	groupTxCmd.AddCommand(
+	groupTxCmd.AddCommand(client.PostCommands(
 		GetCmdApprove(cdc),
 		GetCmdCreateGroup(cdc),
 		// GetCmdPropose(cdc),
@@ -35,7 +36,7 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 		GetCmdUnapprove(cdc),
 		// GetCmdUnjail(cdc),
 		GetCmdWithdraw(cdc),
-	)
+	)...)
 
 	return groupTxCmd
 }
