@@ -1,4 +1,4 @@
-package cli
+package group
 
 import (
 	"fmt"
@@ -9,13 +9,41 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/spf13/cobra"
+	"github.com/cosmos/cosmos-sdk/client"
 )
 
-func membersFromArray(arr []string) []group.Member {
+// GetTxCmd returns the transaction commands for this module
+func GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	groupTxCmd := &cobra.Command{
+		Use:   ModuleName,
+		Short: "Group transactions subcommands",
+	}
+
+	// agentTxCmd.AddCommand(client.PostCommands(
+	// 	agentcmd.GetCmdCreateGroup(mc.cdc),
+	// 	agentcmd.GetCmdApprove(mc.cdc),
+	// 	agentcmd.GetCmdUnapprove(mc.cdc),
+	// 	agentcmd.GetCmdTryExec(mc.cdc),
+	// 	agentcmd.GetCmdWithdraw(mc.cdc),
+	// )...)
+
+	groupTxCmd.AddCommand(client.PostCommands(
+		GetCmdApprove(cdc),
+		GetCmdCreateGroup(cdc),
+		// GetCmdPropose(cdc),
+		GetCmdTryExec(cdc),
+		GetCmdUnapprove(cdc),
+		// GetCmdUnjail(cdc),
+		GetCmdWithdraw(cdc),
+	)...)
+
+	return groupTxCmd
+}
+
+func membersFromArray(arr []string) []Member {
 	n := len(arr)
-	res := make([]group.Member, n)
+	res := make([]Member, n)
 	for i := 0; i < n; i++ {
 		strs := strings.Split(arr[i], "=")
 		if len(strs) <= 0 {
@@ -25,7 +53,7 @@ func membersFromArray(arr []string) []group.Member {
 		if err != nil {
 			panic(err)
 		}
-		mem := group.Member{
+		mem := Member{
 			Address: acc,
 		}
 		if len(strs) == 2 {
@@ -64,12 +92,12 @@ func GetCmdCreateGroup(cdc *codec.Codec) *cobra.Command {
 
 			account := cliCtx.GetFromAddress()
 
-			info := group.Group{
+			info := Group{
 				Members:           membersFromArray(members),
 				DecisionThreshold: sdk.NewInt(threshold),
 			}
 
-			msg := group.NewMsgCreateGroup(info, account)
+			msg := NewMsgCreateGroup(info, account)
 			err := msg.ValidateBasic()
 			if err != nil {
 				return err
@@ -110,7 +138,7 @@ func GetCmdPropose(cdc *codec.Codec, actionCreator ActionCreator) *cobra.Command
 				return err
 			}
 
-			msg := group.MsgCreateProposal{
+			msg := MsgCreateProposal{
 				Proposer: account,
 				Action:   action,
 				Exec:     exec,
@@ -141,9 +169,9 @@ func getRunVote(cdc *codec.Codec, approve bool) func(cmd *cobra.Command, args []
 
 		account := cliCtx.GetFromAddress()
 
-		id := group.MustDecodeProposalIDBech32(args[0])
+		id := MustDecodeProposalIDBech32(args[0])
 
-		msg := group.MsgVote{
+		msg := MsgVote{
 			ProposalID: id,
 			Voter:      account,
 			Vote:       approve,
@@ -193,9 +221,9 @@ func GetCmdTryExec(cdc *codec.Codec) *cobra.Command {
 
 			account := cliCtx.GetFromAddress()
 
-			id := group.MustDecodeProposalIDBech32(args[0])
+			id := MustDecodeProposalIDBech32(args[0])
 
-			msg := group.MsgTryExecuteProposal{
+			msg := MsgTryExecuteProposal{
 				ProposalID: id,
 				Signer:     account,
 			}
@@ -227,9 +255,9 @@ func GetCmdWithdraw(cdc *codec.Codec) *cobra.Command {
 
 			account := cliCtx.GetFromAddress()
 
-			id := group.MustDecodeProposalIDBech32(args[0])
+			id := MustDecodeProposalIDBech32(args[0])
 
-			msg := group.MsgWithdrawProposal{
+			msg := MsgWithdrawProposal{
 				ProposalID: id,
 				Proposer:   account,
 			}
