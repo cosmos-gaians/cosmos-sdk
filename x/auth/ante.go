@@ -112,9 +112,9 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, feeDelegationHand
 		signerAccs := make([]Account, len(signerAddrs))
 		isGenesis := ctx.BlockHeight() == 0
 
-		// Support delegated fees
 		feeAddr := stdTx.FeeAccount
 		if len(feeAddr) != 0 {
+			// check if fees can be delegated
 			if feeDelegationHandler == nil {
 				panic("delegated fees not supported")
 			}
@@ -122,17 +122,18 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, feeDelegationHand
 				return newCtx, res, true
 			}
 		} else {
+			// use first signer, who's going to pay the fees
 			feeAddr = signerAddrs[0]
 		}
 
-		// fetch first signer, who's going to pay the fees
-		signerAccs[0], res = GetSignerAcc(newCtx, ak, feeAddr)
+		// pay fees with the fee account
+		feeAccount, res := GetSignerAcc(newCtx, ak, feeAddr)
 		if !res.IsOK() {
 			return newCtx, res, true
 		}
 
 		if !stdTx.Fee.Amount.IsZero() {
-			signerAccs[0], res = DeductFees(ctx.BlockHeader().Time, signerAccs[0], stdTx.Fee)
+			res = DeductFees(ctx.BlockHeader().Time, feeAccount, stdTx.Fee)
 			if !res.IsOK() {
 				return newCtx, res, true
 			}
@@ -145,8 +146,10 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, feeDelegationHand
 		stdSigs := stdTx.GetSignatures()
 
 		for i := 0; i < len(stdSigs); i++ {
-			// skip the fee payer, account is cached and fees were deducted already
-			if i != 0 {
+			// use cached fee account if not using a delegated fee account
+			if i == 0 && len(stdTx.FeeAccount) == 0 {
+				signerAccs[0] = feeAccount
+			} else {
 				signerAccs[i], res = GetSignerAcc(newCtx, ak, signerAddrs[i])
 				if !res.IsOK() {
 					return newCtx, res, true
@@ -346,18 +349,18 @@ func consumeMultisignatureVerificationGas(meter sdk.GasMeter,
 //
 // NOTE: We could use the CoinKeeper (in addition to the AccountKeeper, because
 // the CoinKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Result) {
+func DeductFees(blockTime time.Time, acc Account, fee StdFee) sdk.Result {
 	coins := acc.GetCoins()
 	feeAmount := fee.Amount
 
 	if !feeAmount.IsValid() {
-		return nil, sdk.ErrInsufficientFee(fmt.Sprintf("invalid fee amount: %s", feeAmount)).Result()
+		return sdk.ErrInsufficientFee(fmt.Sprintf("invalid fee amount: %s", feeAmount)).Result()
 	}
 
 	// get the resulting coins deducting the fees
 	newCoins, ok := coins.SafeSub(feeAmount)
 	if ok {
-		return nil, sdk.ErrInsufficientFunds(
+		return sdk.ErrInsufficientFunds(
 			fmt.Sprintf("insufficient funds to pay for fees; %s < %s", coins, feeAmount),
 		).Result()
 	}
@@ -366,16 +369,16 @@ func DeductFees(blockTime time.Time, acc Account, fee StdFee) (Account, sdk.Resu
 	// such as vesting accounts.
 	spendableCoins := acc.SpendableCoins(blockTime)
 	if _, hasNeg := spendableCoins.SafeSub(feeAmount); hasNeg {
-		return nil, sdk.ErrInsufficientFunds(
+		return sdk.ErrInsufficientFunds(
 			fmt.Sprintf("insufficient funds to pay for fees; %s < %s", spendableCoins, feeAmount),
 		).Result()
 	}
 
 	if err := acc.SetCoins(newCoins); err != nil {
-		return nil, sdk.ErrInternal(err.Error()).Result()
+		return sdk.ErrInternal(err.Error()).Result()
 	}
 
-	return acc, sdk.Result{}
+	return sdk.Result{}
 }
 
 // EnsureSufficientMempoolFees verifies that the given transaction has supplied

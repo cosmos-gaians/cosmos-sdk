@@ -24,6 +24,8 @@ type StdTx struct {
 	Fee        StdFee         `json:"fee"`
 	Signatures []StdSignature `json:"signatures"`
 	Memo       string         `json:"memo"`
+	// FeeAccount is an optional account that fees can be spent from if such
+	// delegation is enabled
 	FeeAccount sdk.AccAddress `json:"fee_account"`
 }
 
