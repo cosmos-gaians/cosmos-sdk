@@ -343,8 +343,7 @@ func (keeper Keeper) Vote(ctx sdk.Context, proposalId ProposalID, voter sdk.AccA
 
 	return sdk.Result{Code: sdk.CodeOK,
 		Tags: sdk.EmptyTags().
-			AppendTag("proposal.id", mustEncodeProposalIDBech32(proposalId)).
-			AppendTag("proposal.action", proposal.Msgs.Type()),
+			AppendTag("proposal.id", mustEncodeProposalIDBech32(proposalId)),
 	}
 }
 
@@ -359,12 +358,11 @@ func (keeper Keeper) TryExecute(ctx sdk.Context, proposalId ProposalID) sdk.Resu
 		return sdk.ErrUnauthorized("proposal failed").Result()
 	}
 
-	res := keeper.dispatcher.DispatchAction(ctx, proposal.Group, proposal.Msgs)
+	res := keeper.dispatcher.DispatchActions(ctx, proposal.Group, proposal.Msgs)
 
 	if res.Code == sdk.CodeOK {
 		store := ctx.KVStore(keeper.storeKey)
 		store.Delete(KeyProposal(proposalId))
-		res.Tags = res.Tags.AppendTag("action", proposal.Msgs.Type())
 	}
 
 	return res
