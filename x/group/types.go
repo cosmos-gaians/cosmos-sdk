@@ -6,6 +6,12 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// Defines delegation module constants
+const (
+	RouterKey    = ModuleName
+	QuerierRoute = ModuleName
+)
+
 // A group can be used to abstract over users and groups.
 // It could be used to group individuals into a group or several groups/users into a larger group.
 // It could be used by a single user to manage multiple devices and setup a multisig policy.

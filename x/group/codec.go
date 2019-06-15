@@ -2,6 +2,9 @@ package group
 
 import "github.com/cosmos/cosmos-sdk/codec"
 
+var moduleCodec = codec.New()
+
+// RegisterCodec ...
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgCreateGroup{}, "group/MsgCreateGroup", nil)
 	cdc.RegisterConcrete(Group{}, "group/Group", nil)
