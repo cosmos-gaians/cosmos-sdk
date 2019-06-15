@@ -71,19 +71,17 @@ type AppModule struct {
 }
 
 func (am AppModule) RegisterRESTRoutes(context.CLIContext, *mux.Router) {
-	panic("implement me")
 }
 
 func (am AppModule) GetTxCmd(*codec.Codec) *cobra.Command {
-	panic("implement me")
+	return nil
 }
 
 func (am AppModule) GetQueryCmd(*codec.Codec) *cobra.Command {
-	panic("implement me")
+	return nil
 }
 
 func (am AppModule) RegisterInvariants(sdk.InvariantRegistry) {
-	panic("implement me")
 }
 
 // Route defines the key for the route

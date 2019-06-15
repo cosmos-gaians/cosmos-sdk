@@ -35,18 +35,18 @@ type MsgCreateProposal struct {
 }
 
 type MsgVote struct {
-	ProposalID ProposalID         `json:"proposal_id"`
+	ProposalID ProposalID     `json:"proposal_id"`
 	Voter      sdk.AccAddress `json:"voter"`
 	Vote       bool           `json:"vote"`
 }
 
 type MsgTryExecuteProposal struct {
-	ProposalID ProposalID         `json:"proposal_id"`
+	ProposalID ProposalID     `json:"proposal_id"`
 	Signer     sdk.AccAddress `json:"signer"`
 }
 
 type MsgWithdrawProposal struct {
-	ProposalID ProposalID         `json:"proposal_id"`
+	ProposalID ProposalID     `json:"proposal_id"`
 	Proposer   sdk.AccAddress `json:"proposer"`
 }
 
@@ -72,7 +72,6 @@ func (info Group) ValidateBasic() sdk.Error {
 }
 
 func (msg MsgCreateGroup) ValidateBasic() sdk.Error {
-	// TODO what are valid group ID's
 	return msg.Data.ValidateBasic()
 }
 
