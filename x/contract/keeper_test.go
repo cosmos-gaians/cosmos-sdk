@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,20 +20,23 @@ import (
 )
 
 type testInput struct {
-	cdc *codec.Codec
-	ctx sdk.Context
-	ak  auth.AccountKeeper
-	pk  params.Keeper
-	bk  bank.Keeper
-	dk  delegation.Keeper
-	ck  Keeper
+	cdc    *codec.Codec
+	ctx    sdk.Context
+	ak     auth.AccountKeeper
+	pk     params.Keeper
+	bk     bank.Keeper
+	dk     delegation.Keeper
+	ck     Keeper
+	router sdk.Router
 }
 
 func setupTestInput() testInput {
 	db := dbm.NewMemDB()
 
 	cdc := codec.New()
-	auth.RegisterBaseAccount(cdc)
+	auth.RegisterCodec(cdc)
+	bank.RegisterCodec(cdc)
+	delegation.RegisterCodec(cdc)
 
 	authCapKey := sdk.NewKVStoreKey("authCapKey")
 	contCapKey := sdk.NewKVStoreKey("contKey")
@@ -59,13 +63,17 @@ func setupTestInput() testInput {
 	bk := bank.NewBaseKeeper(ak, pk.Subspace(banktypes.DefaultParamspace), banktypes.DefaultCodespace)
 	bk.SetSendEnabled(ctx, true)
 
-	dk := delegation.NewKeeper(cdc, delCapKey)
+	router := baseapp.NewRouter()
+
+	dk := delegation.NewKeeper(delCapKey, cdc, router)
+
+	router.AddRoute("bank", bank.NewHandler(bk))
 
 	ck := NewKeeper(contCapKey, cdc, ak, bk, dk)
 
 	ak.SetParams(ctx, auth.DefaultParams())
 
-	return testInput{cdc: cdc, ctx: ctx, ak: ak, pk: pk, bk: bk, ck: ck, dk: dk}
+	return testInput{cdc: cdc, ctx: ctx, ak: ak, pk: pk, bk: bk, ck: ck, dk: dk, router: router}
 }
 
 const (
@@ -80,15 +88,6 @@ func TestKeeperRegen(t *testing.T) {
 
 	addr := sdk.AccAddress([]byte(sender))
 	addr2 := sdk.AccAddress([]byte(recipient))
-	acc := input.ak.NewAccountWithAddress(ctx, addr)
-
-	// Test GetCoins/SetCoins
-	input.ak.SetAccount(ctx, acc)
-	require.True(t, bankKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins()))
-	bankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("tree", 10000)))
-	require.True(t, bankKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 10000))))
-
-	bankKeeper.SendCoins(ctx, addr, addr2, sdk.NewCoins(sdk.NewInt64Coin("tree", 50)))
-	require.True(t, bankKeeper.GetCoins(ctx, addr2).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 50))))
+	input.bk.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("tree", 10000)))
 
 }
