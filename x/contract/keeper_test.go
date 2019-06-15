@@ -1,10 +1,11 @@
 package contract
 
 import (
-	"github.com/cosmos/cosmos-sdk/baseapp"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/stretchr/testify/require"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	dbm "github.com/tendermint/tendermint/libs/db"
 	"github.com/tendermint/tendermint/libs/log"
@@ -37,6 +38,8 @@ func setupTestInput() testInput {
 	auth.RegisterCodec(cdc)
 	bank.RegisterCodec(cdc)
 	delegation.RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
 
 	authCapKey := sdk.NewKVStoreKey("authCapKey")
 	contCapKey := sdk.NewKVStoreKey("contKey")
@@ -90,4 +93,39 @@ func TestKeeperRegen(t *testing.T) {
 	addr2 := sdk.AccAddress([]byte(recipient))
 	input.bk.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("tree", 10000)))
 
+	regen, err := ReadWasmFromFile("examples/regen/build/regen.wasm")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	codeID, err := input.ck.StoreCode(input.ctx, regen)
+	require.NoError(t, err)
+	require.NotNil(t, codeID)
+
+	initMsg := regenInitMsg{
+		Verifier:    addr,
+		Beneficiary: addr2,
+	}
+	rawMsg, err := input.cdc.MarshalJSON(initMsg)
+	require.NoError(t, err)
+
+	contract, res := input.ck.CreateContract(input.ctx, addr, codeID, rawMsg, sdk.NewCoins(sdk.NewInt64Coin("tree", 500)))
+	require.True(t, res.IsOK())
+	require.NotNil(t, contract)
+
+	require.True(t, input.bk.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 9500))))
+	require.True(t, input.bk.GetCoins(ctx, contract).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 500))))
+	require.True(t, input.bk.GetCoins(ctx, addr2).IsEqual(sdk.NewCoins()))
+
+	res = input.ck.SendContract(input.ctx, addr, contract, []byte("{}"), sdk.NewCoins(sdk.NewInt64Coin("tree", 5)))
+	require.True(t, res.IsOK())
+
+	require.True(t, input.bk.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 9495))))
+	require.True(t, input.bk.GetCoins(ctx, contract).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 0))))
+	require.True(t, input.bk.GetCoins(ctx, addr2).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 505))))
+}
+
+type regenInitMsg struct {
+	Verifier    sdk.AccAddress `json:"verifier"`
+	Beneficiary sdk.AccAddress `json:"beneficiary"`
 }
