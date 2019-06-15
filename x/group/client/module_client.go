@@ -1,51 +1,53 @@
-package client
+package group
 
-import (
-	"github.com/cosmos/cosmos-sdk/client"
-	agentcmd "github.com/cosmos/cosmos-sdk/x/group/client/cli"
-	"github.com/spf13/cobra"
-	"github.com/tendermint/go-amino"
-)
+// package client
 
-// ModuleClient exports all client functionality from this module
-type ModuleClient struct {
-	storeKey string
-	cdc      *amino.Codec
-}
+// import (
+// 	"github.com/cosmos/cosmos-sdk/client"
+// 	agentcmd "github.com/cosmos/cosmos-sdk/x/group/client/cli"
+// 	"github.com/spf13/cobra"
+// 	"github.com/tendermint/go-amino"
+// )
 
-func NewModuleClient(storeKey string, cdc *amino.Codec) ModuleClient {
-	return ModuleClient{storeKey, cdc}
-}
+// // ModuleClient exports all client functionality from this module
+// type ModuleClient struct {
+// 	storeKey string
+// 	cdc      *amino.Codec
+// }
 
-// GetQueryCmd returns the cli query commands for this module
-func (mc ModuleClient) GetQueryCmd() *cobra.Command {
-	agentQueryCmd := &cobra.Command{
-		Use:   "group",
-		Short: "Querying commands for the group module",
-	}
+// func NewModuleClient(storeKey string, cdc *amino.Codec) ModuleClient {
+// 	return ModuleClient{storeKey, cdc}
+// }
 
-	agentQueryCmd.AddCommand(client.GetCommands(
-		agentcmd.GetCmdGetGroup(mc.storeKey, mc.cdc),
-		agentcmd.GetCmdGetProposal(mc.storeKey, mc.cdc),
-	)...)
+// // GetQueryCmd returns the cli query commands for this module
+// func (mc ModuleClient) GetQueryCmd() *cobra.Command {
+// 	agentQueryCmd := &cobra.Command{
+// 		Use:   "group",
+// 		Short: "Querying commands for the group module",
+// 	}
 
-	return agentQueryCmd
-}
+// 	agentQueryCmd.AddCommand(client.GetCommands(
+// 		agentcmd.GetCmdGetGroup(mc.storeKey, mc.cdc),
+// 		agentcmd.GetCmdGetProposal(mc.storeKey, mc.cdc),
+// 	)...)
 
-// GetTxCmd returns the transaction commands for this module
-func (mc ModuleClient) GetTxCmd() *cobra.Command {
-	agentTxCmd := &cobra.Command{
-		Use:   "group",
-		Short: "Agent transactions subcommands",
-	}
+// 	return agentQueryCmd
+// }
 
-	agentTxCmd.AddCommand(client.PostCommands(
-		agentcmd.GetCmdCreateGroup(mc.cdc),
-		agentcmd.GetCmdApprove(mc.cdc),
-		agentcmd.GetCmdUnapprove(mc.cdc),
-		agentcmd.GetCmdTryExec(mc.cdc),
-		agentcmd.GetCmdWithdraw(mc.cdc),
-	)...)
+// // GetTxCmd returns the transaction commands for this module
+// func (mc ModuleClient) GetTxCmd() *cobra.Command {
+// 	agentTxCmd := &cobra.Command{
+// 		Use:   "group",
+// 		Short: "Agent transactions subcommands",
+// 	}
 
-	return agentTxCmd
-}
+// 	agentTxCmd.AddCommand(client.PostCommands(
+// 		agentcmd.GetCmdCreateGroup(mc.cdc),
+// 		agentcmd.GetCmdApprove(mc.cdc),
+// 		agentcmd.GetCmdUnapprove(mc.cdc),
+// 		agentcmd.GetCmdTryExec(mc.cdc),
+// 		agentcmd.GetCmdWithdraw(mc.cdc),
+// 	)...)
+
+// 	return agentTxCmd
+// }
