@@ -11,12 +11,7 @@ func TestImportFunc(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	imports, err := wasmImports()
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
-
-	res, err := Run(simple, imports, "add1", []interface{}{int32(7), int32(9)}, AsString)
+	res, err := Run(simple, "add1", []interface{}{int32(7), int32(9)}, AsString)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
