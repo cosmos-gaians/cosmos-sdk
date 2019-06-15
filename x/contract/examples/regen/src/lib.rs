@@ -86,8 +86,30 @@ struct MsgSendContract<'a> {
 #[derive(Serialize, Deserialize)]
 struct RegenSendMsg {}
 
+#[derive(Serialize, Deserialize)]
+enum JsonResponse { JsonError, JsonSuccess }
+
+#[derive(Serialize, Deserialize)]
+struct JsonError<'a> {
+    error: &'a str,
+}
+
+#[derive(Serialize, Deserialize)]
+struct JsonSuccess<'a> {
+    result: &'a str,
+}
+
+
 #[no_mangle]
 pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
+    let res = inner_send(params_ptr);
+    match res {
+        Ok(val) => to_string(&JsonResponse::Success(val)).into_raw(),
+        Err(err) => to_string(&JsonResponse::Error(err)).into_raw()
+    }
+}
+
+fn inner_send(params_ptr: *mut c_char) -> Result<&'str, serde_json_core::de::Error> {
     let params: std::vec::Vec<u8>;
     let state: std::vec::Vec<u8>;
 
@@ -96,17 +118,12 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
         state = CStr::from_ptr(read()).to_bytes().to_vec();
     }
 
-    let pres: serde_json_core::de::Result<MsgSendContract> = from_slice(&params);
-    if pres.is_err() {
-        return CString::new("Could not parse MsgSendContract json.").unwrap().into_raw()
-    }
-    let params = pres.unwrap();
-
-    let state: RegenState = from_slice(&state).expect("Could not parse RegenState json.");
+    let params: MsgSendContract = from_slice(&params)?;
+    let state: RegenState = from_slice(&state)?;
 
     if params.sender == state.verifier {
-        CString::new("Send tx goes here !!!").unwrap().into_raw()
+        return Ok(CString::new("Send tx goes here !!!").unwrap())
     } else {
-        CString::new("").unwrap().into_raw()
+        return Ok(CString::new("").unwrap())
     }
 }
