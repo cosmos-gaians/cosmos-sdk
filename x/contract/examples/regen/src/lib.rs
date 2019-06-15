@@ -7,7 +7,7 @@ use std::mem;
 use std::os::raw::{c_char, c_void};
 use serde::{Deserialize, Serialize};
 use serde_json_core::de::from_slice;
-use serde_json_core::ser::{to_string, to_vec};
+use serde_json_core::ser::{to_string};
 
 use heapless::String;
 use heapless::consts::U1024;
@@ -84,31 +84,15 @@ struct RegenSendMsg {}
 #[no_mangle]
 pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
     let params: MsgCreateContract = from_slice(&CStr::from_ptr(params_ptr).to_bytes()
-        .to_vec()).expect("Could not parse MsgCreateContract json.");
+        .to_vec()).expect("Could not parse MsgSendContract json.");
 
-    if params.
+    let state: RegenState = from_slice(&CStr::from_ptr(read()).to_bytes()
+        .to_vec()).expect("Could not parse RegenState json.");
 
-    // let state: String<U1024> = to_string(&RegenState {
-    //     verifier: params.init_msg.verifier,
-    //     beneficiary: params.init_msg.beneficiary,
-    //     payout: params.init_funds
-    // }).unwrap();
+    if params.sender == state.verifier {
+        CString::new("Send tx goes here").unwrap().into_raw()
+    } else {
+        CString::new("").unwrap().into_raw()
+    }
 
-    // unsafe { 
-    //     write(CString::new(state.as_bytes()).unwrap().into_raw());
-    // }
-
-    CString::new("").unwrap().into_raw()
 }
-
-// #[no_mangle]
-// pub extern "C" fn send(params:  *mut c_char) -> *mut c_char {
-//     let msg = "fool ";
-
-//     unsafe { 
-//         let cnt = sum(x, y) + 1;
-//         let ptr = repeat(msg.as_ptr(), msg.len() as u32, cnt);
-//         let answer = CStr::from_ptr(ptr).to_bytes().to_vec();
-//         return CString::from_vec_unchecked(answer).into_raw();
-//     }
-// }
