@@ -38,7 +38,7 @@ type Member struct {
 type Proposal struct {
 	Group     sdk.AccAddress   `json:"group"`
 	Proposer  sdk.AccAddress   `json:"proposer"`
-	Action    sdk.Msg          `json:"action"`
+	Msgs      []sdk.Msg        `json:"msgs"`
 	Approvers []sdk.AccAddress `json:"approvers,omitempty"`
 }
 

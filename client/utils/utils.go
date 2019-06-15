@@ -69,6 +69,36 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 		return nil
 	}
 
+	// support generic proposals
+	proposeFor := viper.GetString(flags.FlagProposeFor)
+	if len(proposeFor) != 0 {
+		if cliCtx.CreateProposal == nil {
+			return fmt.Errorf("proposals are not enabled")
+		}
+		proposeAddr, err := sdk.AccAddressFromBech32(proposeFor)
+		if err != nil {
+			return err
+		}
+        proposal := cliCtx.CreateProposal(cliCtx, proposeAddr, msgs)
+        msgs = []sdk.Msg{proposal}
+	}
+
+	// support generic delegated transactions
+	sendAs := viper.GetString(flags.FlagSendAs)
+	if len(sendAs) != 0 {
+		if cliCtx.CreateProposal == nil {
+			return fmt.Errorf("proposals are not enabled")
+		}
+		proposeAddr, err := sdk.AccAddressFromBech32(proposeFor)
+		if err != nil {
+			return err
+		}
+		proposal := cliCtx.CreateProposal(cliCtx, proposeAddr, msgs)
+		msgs = []sdk.Msg{proposal}
+	}
+
+	// support delegated fee payments
+
 	if !cliCtx.SkipConfirm {
 		stdSignMsg, err := txBldr.BuildSignMsg(msgs)
 		if err != nil {

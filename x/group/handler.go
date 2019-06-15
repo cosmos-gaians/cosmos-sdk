@@ -44,7 +44,7 @@ func handleMsgCreateGroup(ctx sdk.Context, keeper Keeper, msg MsgCreateGroup) sd
 
 
 func handleMsgCreateProposal(ctx sdk.Context, keeper Keeper, msg MsgCreateProposal) sdk.Result {
-	id, res := keeper.Propose(ctx, msg.Proposer, msg.Action)
+	id, res := keeper.Propose(ctx, msg.Proposer, msg.Group, msg.Msgs)
 	if res.Code != sdk.CodeOK {
 		return res
 	}

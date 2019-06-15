@@ -33,28 +33,29 @@ var (
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
-	Codec         *codec.Codec
-	AccDecoder    authtypes.AccountDecoder
-	Client        rpcclient.Client
-	Keybase       cryptokeys.Keybase
-	Output        io.Writer
-	OutputFormat  string
-	Height        int64
-	NodeURI       string
-	From          string
-	AccountStore  string
-	TrustNode     bool
-	UseLedger     bool
-	BroadcastMode string
-	PrintResponse bool
-	Verifier      tmlite.Verifier
-	VerifierHome  string
-	Simulate      bool
-	GenerateOnly  bool
-	FromAddress   sdk.AccAddress
-	FromName      string
-	Indent        bool
-	SkipConfirm   bool
+	Codec          *codec.Codec
+	AccDecoder     authtypes.AccountDecoder
+	Client         rpcclient.Client
+	Keybase        cryptokeys.Keybase
+	Output         io.Writer
+	OutputFormat   string
+	Height         int64
+	NodeURI        string
+	From           string
+	AccountStore   string
+	TrustNode      bool
+	UseLedger      bool
+	BroadcastMode  string
+	PrintResponse  bool
+	Verifier       tmlite.Verifier
+	VerifierHome   string
+	Simulate       bool
+	GenerateOnly   bool
+	FromAddress    sdk.AccAddress
+	FromName       string
+	Indent         bool
+	SkipConfirm    bool
+	CreateProposal func(cliCtx CLIContext, proposeAddress sdk.AccAddress, msgs []sdk.Msg) sdk.Msg
 }
 
 // NewCLIContextWithFrom returns a new initialized CLIContext with parameters from the

@@ -241,12 +241,13 @@ func (keeper Keeper) getNewProposalId(ctx sdk.Context) ProposalID {
 	return ProposalID(id)
 }
 
-func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action sdk.Msg) (ProposalID, sdk.Result) {
+func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, group sdk.AccAddress, msgs []sdk.Msg) (ProposalID, sdk.Result) {
 	id := keeper.getNewProposalId(ctx)
 
 	prop := Proposal{
+		Group:     group,
 		Proposer:  proposer,
-		Action:    action,
+		Msgs:      msgs,
 		Approvers: []sdk.AccAddress{proposer},
 	}
 
@@ -254,8 +255,7 @@ func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action sd
 
 	res := sdk.Result{}
 	res.Tags = res.Tags.
-		AppendTag("proposal.id", mustEncodeProposalIDBech32(id)).
-		AppendTag("proposal.action", action.Type())
+		AppendTag("proposal.id", mustEncodeProposalIDBech32(id))
 	return id, res
 }
 
@@ -335,7 +335,7 @@ func (keeper Keeper) Vote(ctx sdk.Context, proposalId ProposalID, voter sdk.AccA
 
 	newProp := Proposal{
 		Proposer:  proposal.Proposer,
-		Action:    proposal.Action,
+		Msgs:      proposal.Msgs,
 		Approvers: newVotes,
 	}
 
@@ -344,7 +344,7 @@ func (keeper Keeper) Vote(ctx sdk.Context, proposalId ProposalID, voter sdk.AccA
 	return sdk.Result{Code: sdk.CodeOK,
 		Tags: sdk.EmptyTags().
 			AppendTag("proposal.id", mustEncodeProposalIDBech32(proposalId)).
-			AppendTag("proposal.action", proposal.Action.Type()),
+			AppendTag("proposal.action", proposal.Msgs.Type()),
 	}
 }
 
@@ -359,12 +359,12 @@ func (keeper Keeper) TryExecute(ctx sdk.Context, proposalId ProposalID) sdk.Resu
 		return sdk.ErrUnauthorized("proposal failed").Result()
 	}
 
-	res := keeper.dispatcher.DispatchAction(ctx, proposal.Group, proposal.Action)
+	res := keeper.dispatcher.DispatchAction(ctx, proposal.Group, proposal.Msgs)
 
 	if res.Code == sdk.CodeOK {
 		store := ctx.KVStore(keeper.storeKey)
 		store.Delete(KeyProposal(proposalId))
-		res.Tags = res.Tags.AppendTag("action", proposal.Action.Type())
+		res.Tags = res.Tags.AppendTag("action", proposal.Msgs.Type())
 	}
 
 	return res

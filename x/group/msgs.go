@@ -29,7 +29,8 @@ var _ delegation.Capability = CapabilityUpdateGroup{}
 
 type MsgCreateProposal struct {
 	Proposer sdk.AccAddress `json:"proposer"`
-	Action   sdk.Msg        `json:"action"`
+	Group    sdk.AccAddress `json:"group"`
+	Msgs     []sdk.Msg      `json:"msgs"`
 	// Whether to try to execute this propose right away upon creation
 	Exec bool `json:"exec,omitempty"`
 }
