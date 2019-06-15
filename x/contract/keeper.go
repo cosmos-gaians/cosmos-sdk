@@ -119,11 +119,13 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 	// Store secondary index to look up contracts using a specific CodeID
 	store.Set(KeyCodeHasContract(codeId, addr), []byte{0})
 
+	// TODO: we really need to handle coins, not just one int
+	amt := coins[0].Amount.Int64()
 	msg := contractMsg{
 		ContractAddress: addr,
 		Sender:          creator,
 		Msg:             initData,
-		SentFunds:       100, // TODO
+		SentFunds:       amt,
 	}
 	txtMsg, stdErr := json.Marshal(msg)
 	if stdErr != nil {
@@ -168,11 +170,13 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 
 	fmt.Println("foo")
 
+	// TODO: we really need to handle coins, not just one int
+	amt := coins[0].Amount.Int64()
 	cmsg := contractMsg{
 		ContractAddress: contract,
 		Sender:          sender,
 		Msg:             msg,
-		SentFunds:       100, // TODO
+		SentFunds:       amt,
 	}
 	txtMsg, stdErr := json.Marshal(cmsg)
 	if stdErr != nil {
