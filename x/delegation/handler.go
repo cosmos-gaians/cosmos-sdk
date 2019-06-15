@@ -5,7 +5,7 @@ import (
 	cosmos "github.com/cosmos/cosmos-sdk/types"
 )
 
-func NewHandler(k Dispatcher) cosmos.Handler {
+func NewHandler(k Keeper) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) cosmos.Result {
 		switch msg := msg.(type) {
 		case MsgDelegatedAction:
