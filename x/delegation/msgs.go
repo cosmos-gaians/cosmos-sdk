@@ -7,8 +7,8 @@ import (
 )
 
 type MsgExecDelegatedAction struct {
-	Actor  sdk.AccAddress `json:"actor"`
-	Action sdk.Msg `json:"action"`
+	Signer sdk.AccAddress `json:"signer"`
+	Msg    sdk.Msg        `json:"msg"`
 }
 
 func (msg MsgExecDelegatedAction) Route() string {
@@ -32,7 +32,7 @@ func (msg MsgExecDelegatedAction) GetSignBytes() []byte {
 }
 
 func (msg MsgExecDelegatedAction) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.Actor}
+	return []sdk.AccAddress{msg.Signer}
 }
 
 type MsgDelegate struct {

@@ -12,7 +12,7 @@ func NewHandler(k Keeper) sdk.Handler {
 			k.Delegate(ctx, msg.Grantee, msg.Granter, msg.Capability, msg.Expiration)
 			return sdk.Result{}
 		case MsgExecDelegatedAction:
-			return k.DispatchAction(ctx, msg.Actor, msg.Action)
+			return k.DispatchAction(ctx, msg.Signer, msg.Msg)
 		case MsgRevoke:
 			k.Revoke(ctx, msg.Grantee, msg.Granter, msg.MsgType)
 			return sdk.Result{}

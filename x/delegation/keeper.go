@@ -25,7 +25,7 @@ func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, router sdk.Router) Keepe
 }
 
 func ActorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, msg sdk.Msg) []byte {
-	return []byte(fmt.Sprintf("c/%s/%s/%s/%s", grantee, granter, msg.Route(), msg.Type()))
+	return []byte(fmt.Sprintf("c/%x/%x/%s/%s", grantee, granter, msg.Route(), msg.Type()))
 }
 
 func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
