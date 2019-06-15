@@ -136,7 +136,7 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
                     ]
                 }
             }
-        }"#,
+        ]}"#,
         )
         .unwrap()
         .into_raw()

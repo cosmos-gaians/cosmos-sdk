@@ -6,8 +6,9 @@ import (
 )
 
 type SendResponse struct {
-	Error string   `json:"error"`
-	Msgs  []string `json:"msgs"`
+	Error string `json:"error"`
+	// Msgs  []sdk.Msg `json:"msgs"`
+	Msgs []json.RawMessage `json:"msgs"`
 }
 
 func ParseResponse(raw string) (*SendResponse, error) {
