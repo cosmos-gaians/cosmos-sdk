@@ -19,3 +19,30 @@ func TestImportFunc(t *testing.T) {
 		t.Fatalf("Unexpected result: %d", res)
 	}
 }
+
+func TestRegenInit(t *testing.T) {
+	regen, err := Read("examples/regen/build/regen.wasm")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// Set up global static for test
+	data = "{}"
+
+	json := `{
+		"sender": "0123456789",
+		"init_funds": 1000,
+		"init_msg": {
+			"verifier": "ethan",
+			"beneficiary": "jehan"
+		}
+	}`
+
+	res, err := Run(regen, "init", []interface{}{json}, AsString)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	if res.(string) != "" {
+		t.Fatalf("Unexpected result: %d", res)
+	}
+}
