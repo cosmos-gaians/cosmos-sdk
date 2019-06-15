@@ -32,10 +32,16 @@ func init() {
 // and also to accept or reject different types of PubKey's. This is where apps can define their own PubKey
 type SignatureVerificationGasConsumer = func(meter sdk.GasMeter, sig []byte, pubkey crypto.PubKey, params Params) sdk.Result
 
+type FeeDelegationHandler interface {
+	// AllowDelegatedFees checks if the grantee can use the granter's account to spend the specified fees, updating
+	// any fee allowance in accordance with the provided fees
+	AllowDelegatedFees(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, fee sdk.Coins) bool
+}
+
 // NewAnteHandler returns an AnteHandler that checks and increments sequence
 // numbers, checks signatures & account numbers, and deducts fees from the first
 // signer.
-func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, sigGasConsumer SignatureVerificationGasConsumer) sdk.AnteHandler {
+func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, feeDelegationHandler FeeDelegationHandler, sigGasConsumer SignatureVerificationGasConsumer) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, simulate bool,
 	) (newCtx sdk.Context, res sdk.Result, abort bool) {
@@ -106,8 +112,21 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, sigGasConsumer Si
 		signerAccs := make([]Account, len(signerAddrs))
 		isGenesis := ctx.BlockHeight() == 0
 
+		// Support delegated fees
+		feeAddr := stdTx.FeeAccount
+		if len(feeAddr) != 0 {
+			if feeDelegationHandler == nil {
+				panic("delegated fees not supported")
+			}
+			if !feeDelegationHandler.AllowDelegatedFees(ctx, signerAddrs[0], feeAddr, stdTx.Fee.Amount) {
+				return newCtx, res, true
+			}
+		} else {
+			feeAddr = signerAddrs[0]
+		}
+
 		// fetch first signer, who's going to pay the fees
-		signerAccs[0], res = GetSignerAcc(newCtx, ak, signerAddrs[0])
+		signerAccs[0], res = GetSignerAcc(newCtx, ak, feeAddr)
 		if !res.IsOK() {
 			return newCtx, res, true
 		}

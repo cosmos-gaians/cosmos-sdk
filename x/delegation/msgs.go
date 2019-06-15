@@ -96,3 +96,63 @@ func (msg MsgRevoke) GetSignBytes() []byte {
 func (msg MsgRevoke) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Granter}
 }
+
+type MsgDelegateFeeAllowance struct {
+	Granter sdk.AccAddress `json:"granter"`
+	Grantee sdk.AccAddress `json:"grantee"`
+	Allowance FeeAllowance `json:"allowance"`
+}
+
+func (msg MsgDelegateFeeAllowance) Route() string {
+	return "delegation"
+}
+
+func (msg MsgDelegateFeeAllowance) Type() string {
+    return "delegate-fee-allowance"
+}
+
+func (msg MsgDelegateFeeAllowance) ValidateBasic() sdk.Error {
+    return nil
+}
+
+func (msg MsgDelegateFeeAllowance) GetSignBytes() []byte {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	return sdk.MustSortJSON(b)
+}
+
+func (msg MsgDelegateFeeAllowance) GetSigners() []sdk.AccAddress {
+    return []sdk.AccAddress{msg.Granter}
+}
+
+type MsgRevokeFeeAllowance struct {
+	Granter sdk.AccAddress `json:"granter"`
+	Grantee sdk.AccAddress `json:"grantee"`
+}
+
+func (msg MsgRevokeFeeAllowance) Route() string {
+	return "delegation"
+}
+
+func (msg MsgRevokeFeeAllowance) Type() string {
+	return "revoke-fee-allowance"
+}
+
+func (msg MsgRevokeFeeAllowance) ValidateBasic() sdk.Error {
+	return nil
+}
+
+func (msg MsgRevokeFeeAllowance) GetSignBytes() []byte {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	return sdk.MustSortJSON(b)
+}
+
+func (msg MsgRevokeFeeAllowance) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Granter}
+}
+

@@ -24,6 +24,7 @@ type StdTx struct {
 	Fee        StdFee         `json:"fee"`
 	Signatures []StdSignature `json:"signatures"`
 	Memo       string         `json:"memo"`
+	FeeAccount sdk.AccAddress `json:"fee_account"`
 }
 
 func NewStdTx(msgs []sdk.Msg, fee StdFee, sigs []StdSignature, memo string) StdTx {
@@ -188,7 +189,7 @@ func StdSignBytes(chainID string, accnum uint64, sequence uint64, fee StdFee, ms
 // StdSignature represents a sig
 type StdSignature struct {
 	crypto.PubKey `json:"pub_key"` // optional
-	Signature     []byte           `json:"signature"`
+	Signature     []byte `json:"signature"`
 }
 
 // DefaultTxDecoder logic for standard transaction decoding

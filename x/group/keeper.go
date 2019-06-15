@@ -111,13 +111,9 @@ func (keeper Keeper) setGroupInfo(ctx sdk.Context, id sdk.AccAddress, info Group
 	store.Set(KeyGroupID(id), bz)
 }
 
-//func (keeper Keeper) UpdateGroupInfo(ctx sdk.Context, id GroupID, signers []sdk.AccAddress, info GroupInfo) bool {
-//	if !keeper.Authorize(ctx, id, signers) {
-//		return false
-//	}
-//	keeper.setGroupInfo(ctx, id, info)
-//	return true
-//}
+func (keeper Keeper) UpdateGroupInfo(ctx sdk.Context, id sdk.AccAddress, info Group) {
+	keeper.setGroupInfo(ctx, id, info)
+}
 
 func (keeper Keeper) Authorize(ctx sdk.Context, group sdk.AccAddress, signers []sdk.AccAddress) bool {
 	info, err := keeper.GetGroupInfo(ctx, group)

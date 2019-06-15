@@ -16,6 +16,12 @@ func NewHandler(k Keeper) sdk.Handler {
 		case MsgRevoke:
 			k.Revoke(ctx, msg.Grantee, msg.Granter, msg.MsgType)
 			return sdk.Result{}
+		case MsgDelegateFeeAllowance:
+			k.DelegateFeeAllowance(ctx, msg.Grantee, msg.Granter, msg.Allowance)
+			return sdk.Result{}
+		case MsgRevokeFeeAllowance:
+			k.RevokeFeeAllowance(ctx, msg.Grantee, msg.Granter)
+			return sdk.Result{}
 		default:
 			errMsg := fmt.Sprintf("Unrecognized data Msg type: %v", msg.Type())
 			return sdk.ErrUnknownRequest(errMsg).Result()

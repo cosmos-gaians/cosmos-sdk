@@ -39,7 +39,7 @@ func KeyContractState(id sdk.AccAddress) []byte {
 }
 
 func KeyCodeHasContract(id CodeID, contract sdk.AccAddress) []byte {
-	return []byte(fmt.Sprintf("s/%x/%x", id, contract))
+	return []byte(fmt.Sprintf("cc/%x/%x", id, contract))
 }
 
 func (k Keeper) autoIncrementID(ctx sdk.Context, nextIdKey []byte) uint64 {
