@@ -26,6 +26,7 @@ func (mc ModuleClient) GetQueryCmd() *cobra.Command {
 
 	agentQueryCmd.AddCommand(client.GetCommands(
 		agentcmd.GetCmdGetGroup(mc.storeKey, mc.cdc),
+		agentcmd.GetCmdGetProposal(mc.storeKey, mc.cdc),
 	)...)
 
 	return agentQueryCmd
@@ -40,6 +41,10 @@ func (mc ModuleClient) GetTxCmd() *cobra.Command {
 
 	agentTxCmd.AddCommand(client.PostCommands(
 		agentcmd.GetCmdCreateGroup(mc.cdc),
+		agentcmd.GetCmdApprove(mc.cdc),
+		agentcmd.GetCmdUnapprove(mc.cdc),
+		agentcmd.GetCmdTryExec(mc.cdc),
+		agentcmd.GetCmdWithdraw(mc.cdc),
 	)...)
 
 	return agentTxCmd
