@@ -63,7 +63,9 @@ pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
 
     let pres: serde_json_core::de::Result<MsgCreateContract> = from_slice(&params);
     if pres.is_err() {
-        return CString::new(r#"{"error": "Could not parse MsgCreateContract json."}"#).unwrap().into_raw()
+        return CString::new(r#"{"error": "Could not parse MsgCreateContract json."}"#)
+            .unwrap()
+            .into_raw();
     }
     let params = pres.unwrap();
 
@@ -104,19 +106,43 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
 
     let pres: serde_json_core::de::Result<MsgSendContract> = from_slice(&params);
     if pres.is_err() {
-        return CString::new(r#"{"error": "Could not parse MsgSendContract json."}"#).unwrap().into_raw()
+        return CString::new(r#"{"error": "Could not parse MsgSendContract json."}"#)
+            .unwrap()
+            .into_raw();
     }
     let params = pres.unwrap();
 
     let sres: serde_json_core::de::Result<RegenState> = from_slice(&state);
     if sres.is_err() {
-        return CString::new(r#"{"error": "Could not parse RegenState json."}"#).unwrap().into_raw()
+        return CString::new(r#"{"error": "Could not parse RegenState json."}"#)
+            .unwrap()
+            .into_raw();
     }
     let state = sres.unwrap();
 
     if params.sender == state.verifier {
-        CString::new(r#"{"msgs": ["foo"]}"#).unwrap().into_raw()
+        CString::new(
+            r#"{"msgs":[
+            {
+                "type":"cosmos-sdk/MsgSend",
+                "value":{
+                    "from_address":"xrn:12677q7hjurt967k7ssrylvcnhl2xjcj0x85ycx",
+                    "to_address":"xrn:1e6tz5v50dnnapvqnjw9n3mnp8gs0tx0rrrjt5s",
+                    "amount":[
+                        {
+                            "denom":"tree",
+                            "amount":"1000"
+                        }
+                    ]
+                }
+            }
+        }"#,
+        )
+        .unwrap()
+        .into_raw()
     } else {
-        CString::new(r#"{"error": "Unauthorized"}"#).unwrap().into_raw()
+        CString::new(r#"{"error": "Unauthorized"}"#)
+            .unwrap()
+            .into_raw()
     }
 }
