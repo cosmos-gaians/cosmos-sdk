@@ -1,16 +1,16 @@
+extern crate heapless;
 extern crate serde;
 extern crate serde_json_core;
-extern crate heapless;
 
-use std::ffi::{CString, CStr};
-use std::mem;
-use std::os::raw::{c_char, c_void};
 use serde::{Deserialize, Serialize};
 use serde_json_core::de::from_slice;
-use serde_json_core::ser::{to_string};
+use serde_json_core::ser::to_string;
+use std::ffi::{CStr, CString};
+use std::mem;
+use std::os::raw::{c_char, c_void};
 
-use heapless::String;
 use heapless::consts::U1024;
+use heapless::String;
 
 extern "C" {
     fn read() -> *mut c_char;
@@ -35,36 +35,41 @@ pub extern "C" fn deallocate(pointer: *mut c_void, capacity: usize) {
 
 #[derive(Serialize, Deserialize)]
 struct MsgCreateContract<'a> {
-	sender:    &'a str,
-	init_msg:   RegenInitMsg<'a>,
-	init_funds: u64
+    sender: &'a str,
+    init_msg: RegenInitMsg<'a>,
+    init_funds: u64,
 }
 
 #[derive(Serialize, Deserialize)]
 struct RegenInitMsg<'a> {
-    verifier:    &'a str,
-	beneficiary:    &'a str,
+    verifier: &'a str,
+    beneficiary: &'a str,
 }
 
 #[derive(Serialize, Deserialize)]
 struct RegenState<'a> {
-    verifier:    &'a str,
-	beneficiary:    &'a str,
-    payout: u64
+    verifier: &'a str,
+    beneficiary: &'a str,
+    payout: u64,
 }
 
 #[no_mangle]
 pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
-    let params: MsgCreateContract = from_slice(&CStr::from_ptr(params_ptr).to_bytes()
-        .to_vec()).expect("Could not parse MsgCreateContract json.");
+    let params: std::vec::Vec<u8>;
+    unsafe {
+        params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
+    }
 
+    let params: MsgCreateContract =
+        from_slice(&params).expect("Could not parse MsgCreateContract json.");
     let state: String<U1024> = to_string(&RegenState {
         verifier: params.init_msg.verifier,
         beneficiary: params.init_msg.beneficiary,
-        payout: params.init_funds
-    }).unwrap();
+        payout: params.init_funds,
+    })
+    .unwrap();
 
-    unsafe { 
+    unsafe {
         write(CString::new(state.as_bytes()).unwrap().into_raw());
     }
 
@@ -73,9 +78,9 @@ pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
 
 #[derive(Serialize, Deserialize)]
 struct MsgSendContract<'a> {
-	sender:   &'a str,
-	msg:      &'a str,
-	payment:  u64
+    sender: &'a str,
+    msg: &'a str,
+    payment: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -83,16 +88,22 @@ struct RegenSendMsg {}
 
 #[no_mangle]
 pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
-    let params: MsgCreateContract = from_slice(&CStr::from_ptr(params_ptr).to_bytes()
-        .to_vec()).expect("Could not parse MsgSendContract json.");
+    let params: std::vec::Vec<u8>;
+    let state: std::vec::Vec<u8>;
 
-    let state: RegenState = from_slice(&CStr::from_ptr(read()).to_bytes()
-        .to_vec()).expect("Could not parse RegenState json.");
+    unsafe {
+        params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
+        state = CStr::from_ptr(read()).to_bytes().to_vec();
+    }
+
+    let params: MsgCreateContract =
+        from_slice(&params).expect("Could not parse MsgSendContract json.");
+
+    let state: RegenState = from_slice(&state).expect("Could not parse RegenState json.");
 
     if params.sender == state.verifier {
-        CString::new("Send tx goes here").unwrap().into_raw()
+        CString::new("Send tx goes here !!!").unwrap().into_raw()
     } else {
         CString::new("").unwrap().into_raw()
     }
-
 }
