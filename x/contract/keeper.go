@@ -21,6 +21,10 @@ type Keeper struct {
 	delegationKeeper delegation.Keeper
 }
 
+func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, accountKeeper auth.AccountKeeper, bankKeeper bank.Keeper, delegationKeeper delegation.Keeper) Keeper {
+	return Keeper{storeKey: storeKey, cdc: cdc, accountKeeper: accountKeeper, bankKeeper: bankKeeper, delegationKeeper: delegationKeeper}
+}
+
 var (
 	keyNextCodeID     = []byte("nextCodeId")
 	keyNextContractID = []byte("nextContractId")
