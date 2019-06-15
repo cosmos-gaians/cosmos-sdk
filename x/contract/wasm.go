@@ -38,28 +38,19 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 	outputPointer := res.ToI32()
 
 	memory := instance.Memory.Data()[outputPointer:]
-	nth := 0
-	var output strings.Builder
-	for {
-		if memory[nth] == 0 {
-			break
-		}
-
-		output.WriteByte(memory[nth])
-		nth++
-	}
+	str := readString(memory)
 
 	// Deallocate the subject, and the output.
 	deallocate, ok := instance.Exports["deallocate"]
 	if ok {
-		lengthOfOutput := nth
+		lengthOfOutput := len(str)
 		_, _ = deallocate(outputPointer, lengthOfOutput)
 	}
 
 	// TODO
 	// deallocate(inputPointer, lengthOfSubject)
 
-	return output.String(), nil
+	return str, nil
 }
 
 // Run will execute the named function on the wasm bytes with the passed arguments.
@@ -130,4 +121,18 @@ func prepareString(instance wasm.Instance, arg string) int32 {
 	memory[l] = 0
 
 	return inputPointer
+}
+
+func readString(memory []byte) string {
+	nth := 0
+	var output strings.Builder
+	for {
+		if memory[nth] == 0 {
+			break
+		}
+
+		output.WriteByte(memory[nth])
+		nth++
+	}
+	return output.String()
 }
