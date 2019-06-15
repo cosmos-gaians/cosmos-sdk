@@ -118,20 +118,39 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
             .unwrap()
             .into_raw();
     }
-    let state = sres.unwrap();
+    let mut state = sres.unwrap();
+
+    let funds = state.payout + params.sent_funds;
 
     if params.sender == state.verifier {
+        state.payout = 0;
+        let state_str: String<U1024> = to_string(&state).unwrap();
+
+        unsafe {
+            write(CString::new(state_str.as_bytes()).unwrap().into_raw());
+        }
+
+        // let mut output = br#"{"msgs":[
+        //     {
+        //         "type":"cosmos-sdk/MsgSend",
+        //         "value":{
+        //             "from_address":""#.to_vec();
+        // output.extend(state.verifier.to_vec())
+
+// state.verifier
+// state.beneficiary
+// funds
         CString::new(
             r#"{"msgs":[
             {
                 "type":"cosmos-sdk/MsgSend",
                 "value":{
-                    "from_address":"cosmos157ez5zlaq0scm9aycwphhqhmg3kws4qusmekll",
-                    "to_address":"cosmos1rjxwm0rwyuldsg00qf5lt26wxzzppjzxs2efdw",
+                    "from_address":"cosmos157ez5zlaq0scm9aycwphhqhmg3kws4qusmekll",  
+                    "to_address":"cosmos1rjxwm0rwyuldsg00qf5lt26wxzzppjzxs2efdw",  
                     "amount":[
                         {
                             "denom":"tree",
-                            "amount":"1000"
+                            "amount":"1000"  
                         }
                     ]
                 }
