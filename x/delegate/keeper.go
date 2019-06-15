@@ -3,49 +3,50 @@ package delegate
 import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/codec"
-	cosmos "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"time"
 )
 
 type keeper struct {
-	storeKey cosmos.StoreKey
+	storeKey sdk.StoreKey
 	cdc      *codec.Codec
 }
 
-type capabilityGrant struct {
-	// all the actors that delegated this capability to the actor
-	// the capability should be cleared if root is false and this array is cleared
-	delegatedBy []cosmos.AccAddress
+var _ Keeper = keeper{}
 
-	// whenever this capability is undelegated or revoked, these delegations
-	// need to be cleared recursively
-	delegatedTo []cosmos.AccAddress
+type capabilityGrant struct {
+	//// all the actors that delegated this capability to the actor
+	//// the capability should be cleared if root is false and this array is cleared
+	//delegatedBy []sdk.AccAddress
+	//
+	//// whenever this capability is undelegated or revoked, these delegations
+	//// need to be cleared recursively
+	//delegatedTo []sdk.AccAddress
 
 	capability Capability
+
+	expiration time.Time
 }
 
-func NewKeeper(storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
+func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec) Keeper {
 	return &keeper{storeKey: storeKey, cdc: cdc}
 }
 
-func ActorCapabilityKey(capability Capability, actor cosmos.AccAddress) []byte {
-	return []byte(fmt.Sprintf("c/%s/%x", capability.CapabilityKey(), actor))
+func ActorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, msg sdk.Msg) []byte {
+	return []byte(fmt.Sprintf("c/%s/%s/%s/%s", grantee, granter, msg.Route(), msg.Type()))
 }
 
-func (k keeper) getCapabilityGrant(ctx cosmos.Context, actor cosmos.AccAddress, capability Capability) (grant capabilityGrant, found bool) {
-	//if bytes.Equal(actor, capability.RootAccount()) {
-	//	return capabilityGrant{root:true}, true
-	//}
-	//store := ctx.KVStore(k.storeKey)
-	//bz := store.Get(ActorCapabilityKey(capability, actor))
-	//if bz == nil {
-	//	return grant, false
-	//}
-	//k.cdc.MustUnmarshalBinaryBare(bz, &grant)
-	//return grant, true
-	panic("TODO")
+func (k keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(ActorCapabilityKey(grantee, granter, msgType))
+	if bz == nil {
+		return grant, false
+	}
+	k.cdc.MustUnmarshalBinaryBare(bz, &grant)
+	return grant, true
 }
 
-func (k keeper) Delegate(ctx cosmos.Context, grantor cosmos.AccAddress, grantee cosmos.AccAddress, capability ActorCapability) bool {
+func (k keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, grantor sdk.AccAddress, capability Capability, expiration time.Time) bool {
 	//store := ctx.KVStore(k.storeKey)
 	//grantorGrant, found := k.getCapabilityGrant(ctx, grantor, capability)
 	//if !found {
@@ -63,18 +64,28 @@ func (k keeper) Delegate(ctx cosmos.Context, grantor cosmos.AccAddress, grantee 
 	panic("TODO")
 }
 
-func (k keeper) Undelegate(ctx cosmos.Context, grantor cosmos.AccAddress, grantee cosmos.AccAddress, capability ActorCapability) {
+
+func (k keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
+	grant, found := k.getCapabilityGrant(ctx, grantee, granter, updated.MsgType())
+	if !found {
+		return
+	}
+	grant.capability = updated
+
+}
+
+func (k keeper) Undelegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
 	panic("implement me")
 }
 
-func (k keeper) HasCapability(ctx cosmos.Context, actor cosmos.AccAddress, capability ActorCapability) bool {
-	//grant, found := k.getCapabilityGrant(ctx, actor, capability)
-	//if !found {
-	//	return false
-	//}
-	//if grant.root {
-	//	return true
-	//}
-	//return grant.
-	panic("TODO")
+func (k keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) Capability {
+	grant, found := k.getCapabilityGrant(ctx, grantee, granter, msgType)
+	if !found {
+		return nil
+	}
+	if grant.expiration.Before(ctx.BlockHeader().Time) {
+		k.Undelegate(ctx, grantee, granter, msgType)
+		return nil
+	}
+	return grant.capability
 }

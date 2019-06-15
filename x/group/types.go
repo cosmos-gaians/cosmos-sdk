@@ -4,7 +4,6 @@ package group
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/delegate"
 )
 
 // A group can be used to abstract over users and groups.
@@ -30,16 +29,9 @@ type Member struct {
 	Weight sdk.Int `json:"weight"`
 }
 
-// Creates a group on the blockchain
-// Should return a tag "group.id" with the bech32 address of the group
-type MsgCreateGroup struct {
-	Data   Group          `json:"data"`
-	Signer sdk.AccAddress `json:"signer"`
-}
-
 type Proposal struct {
 	Group     sdk.AccAddress   `json:"group"`
 	Proposer  sdk.AccAddress   `json:"proposer"`
-	Action    delegate.Action `json:"action"`
+	Action    sdk.Msg          `json:"action"`
 	Approvers []sdk.AccAddress `json:"approvers,omitempty"`
 }

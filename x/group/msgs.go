@@ -5,7 +5,49 @@ import (
 	"fmt"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/delegate"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
+
+// Creates a group on the blockchain
+// Should return a tag "group.id" with the bech32 address of the group
+type MsgCreateGroup struct {
+	Data   Group          `json:"data"`
+	Signer sdk.AccAddress `json:"signer"`
+}
+
+type MsgUpdateGroup struct {
+	GroupID sdk.AccAddress `json:"group_id"`
+	Data    Group          `json:"data"`
+}
+
+type CapabilityUpdateGroup struct {
+	GroupIDs []sdk.AccAddress `json:"group_ids"`
+}
+
+var _ delegate.Capability = CapabilityUpdateGroup{}
+
+type MsgCreateProposal struct {
+	Proposer sdk.AccAddress `json:"proposer"`
+	Action   sdk.Msg        `json:"action"`
+	// Whether to try to execute this propose right away upon creation
+	Exec bool `json:"exec,omitempty"`
+}
+
+type MsgVote struct {
+	ProposalId []byte         `json:"proposal_id"`
+	Voter      sdk.AccAddress `json:"voter"`
+	Vote       bool           `json:"vote"`
+}
+
+type MsgTryExecuteProposal struct {
+	ProposalId []byte         `json:"proposal_id"`
+	Signer     sdk.AccAddress `json:"signer"`
+}
+
+type MsgWithdrawProposal struct {
+	ProposalId []byte         `json:"proposal_id"`
+	Proposer   sdk.AccAddress `json:"proposer"`
+}
 
 func NewMsgCreateGroup(group Group, signer sdk.AccAddress) MsgCreateGroup {
 	return MsgCreateGroup{
@@ -45,29 +87,6 @@ func (msg MsgCreateGroup) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Signer}
 }
 
-type MsgCreateProposal struct {
-	Proposer sdk.AccAddress `json:"proposer"`
-	Action   delegate.Action `json:"action"`
-	// Whether to try to execute this propose right away upon creation
-	Exec bool `json:"exec,omitempty"`
-}
-
-type MsgVote struct {
-	ProposalId []byte         `json:"proposal_id"`
-	Voter      sdk.AccAddress `json:"voter"`
-	Vote       bool           `json:"vote"`
-}
-
-type MsgTryExecuteProposal struct {
-	ProposalId []byte         `json:"proposal_id"`
-	Signer     sdk.AccAddress `json:"signer"`
-}
-
-type MsgWithdrawProposal struct {
-	ProposalId []byte         `json:"proposal_id"`
-	Proposer   sdk.AccAddress `json:"proposer"`
-}
-
 func (msg MsgCreateProposal) Route() string { return "proposal" }
 
 func (msg MsgCreateProposal) Type() string { return "proposal.create" }
@@ -88,7 +107,7 @@ func (msg MsgCreateProposal) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Proposer}
 }
 
-func (msg MsgVote) Route() string { return "proposal" }
+func (msg MsgVote) Route() string { return "group" }
 
 func (msg MsgVote) Type() string { return "proposal.vote" }
 
@@ -106,9 +125,9 @@ func (msg MsgVote) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Voter}
 }
 
-func (msg MsgTryExecuteProposal) Route() string { return "proposal" }
+func (msg MsgTryExecuteProposal) Route() string { return "group" }
 
-func (msg MsgTryExecuteProposal) Type() string { return "proposal.exec" }
+func (msg MsgTryExecuteProposal) Type() string { return "group.exec-proposal" }
 
 func (msg MsgTryExecuteProposal) ValidateBasic() sdk.Error {
 	return nil
@@ -126,9 +145,9 @@ func (msg MsgTryExecuteProposal) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Signer}
 }
 
-func (msg MsgWithdrawProposal) Route() string { return "proposal" }
+func (msg MsgWithdrawProposal) Route() string { return "group" }
 
-func (msg MsgWithdrawProposal) Type() string { return "proposal.withdraw" }
+func (msg MsgWithdrawProposal) Type() string { return "group.withdraw-proposal" }
 
 func (msg MsgWithdrawProposal) ValidateBasic() sdk.Error {
 	return nil
@@ -144,4 +163,42 @@ func (msg MsgWithdrawProposal) GetSignBytes() []byte {
 
 func (msg MsgWithdrawProposal) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Proposer}
+}
+
+func (msg MsgUpdateGroup) Route() string {
+	return "group"
+}
+
+func (msg MsgUpdateGroup) Type() string {
+	return "group.update"
+}
+
+func (msg MsgUpdateGroup) ValidateBasic() sdk.Error {
+	return msg.Data.ValidateBasic()
+}
+
+func (msg MsgUpdateGroup) GetSignBytes() []byte {
+	b, err := json.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	return sdk.MustSortJSON(b)
+}
+
+func (msg MsgUpdateGroup) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.GroupID}
+}
+
+func (cap CapabilityUpdateGroup) MsgType() sdk.Msg {
+	return MsgUpdateGroup{}
+}
+
+func (cap CapabilityUpdateGroup) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegate.Capability, delete bool) {
+	switch msg := msg.(type) {
+	case MsgUpdateGroup:
+
+		return true, nil, false
+	default:
+		panic("Unexpected")
+	}
 }

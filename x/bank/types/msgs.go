@@ -2,6 +2,8 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/delegate"
+	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // RouterKey is they name of the bank module
@@ -52,6 +54,42 @@ func (msg MsgSend) GetSignBytes() []byte {
 // GetSigners Implements Msg.
 func (msg MsgSend) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.FromAddress}
+}
+
+func (msg MsgSend) Actor() sdk.AccAddress {
+	return msg.FromAddress
+}
+
+func (msg MsgSend) RequiredCapabilities() []delegate.Capability {
+	return []delegate.Capability{SendCapability{SpendLimit: msg.Amount}}
+}
+
+type SendCapability struct {
+	// SpendLimit specifies the maximum amount of tokens that can be spent
+	// by this capability and will be updated as tokens are spent. If it is
+	// empty, there is no spend limit and any amount of coins can be spent.
+	SpendLimit sdk.Coins
+}
+
+var _ delegate.Capability = SendCapability{}
+
+func (cap SendCapability) MsgType() sdk.Msg {
+    return MsgSend{}
+}
+
+func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegate.Capability, delete bool) {
+	switch msg := msg.(type) {
+	case MsgSend:
+		left, valid := cap.SpendLimit.SafeSub(msg.Amount)
+		if !valid {
+			return false, nil, false
+		}
+		if left.IsZero() {
+			return true, nil, true
+		}
+		return true, SendCapability{SpendLimit: left}, false
+	}
+	return false, nil, false
 }
 
 // MsgMultiSend - high level transaction of the coin module
