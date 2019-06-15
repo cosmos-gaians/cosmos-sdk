@@ -3,10 +3,13 @@ package contract
 import (
 	"strings"
 	"testing"
+
+	"github.com/cosmos/cosmos-sdk/store/transient"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestImportFunc(t *testing.T) {
-	simple, err := Read("examples/import_func/build/import_func.wasm")
+	simple, err := ReadWasmFromFile("examples/import_func/build/import_func.wasm")
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -20,14 +23,19 @@ func TestImportFunc(t *testing.T) {
 	}
 }
 
+func mockKVStore() (sdk.KVStore, []byte) {
+	store := transient.NewStore()
+	key := []byte("12345")
+	return store, key
+}
+
 func TestRegenInit(t *testing.T) {
-	regen, err := Read("examples/regen/build/regen.wasm")
+	regen, err := ReadWasmFromFile("examples/regen/build/regen.wasm")
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	// Set up global static for test
-	data = "{}"
+	store, key := mockKVStore()
 
 	initMsg := `{
 		"contract_address": "deadbeef",
@@ -39,7 +47,7 @@ func TestRegenInit(t *testing.T) {
 		}
 	}`
 
-	res, err := Run(regen, "init", []interface{}{initMsg})
+	res, err := Run(store, key, regen, "init", []interface{}{initMsg})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -51,7 +59,7 @@ func TestRegenInit(t *testing.T) {
 		invalid: 123
 	}`
 
-	res, err = Run(regen, "send", []interface{}{badSend})
+	res, err = Run(store, key, regen, "send", []interface{}{badSend})
 	if err == nil {
 		t.Fatal("Allowed bad json")
 	}
@@ -63,7 +71,7 @@ func TestRegenInit(t *testing.T) {
 		"msg": {}
 	}`
 
-	res, err = Run(regen, "send", []interface{}{unauthSend})
+	res, err = Run(store, key, regen, "send", []interface{}{unauthSend})
 	if err == nil {
 		t.Fatal("Allowed no auth")
 	}
@@ -75,7 +83,7 @@ func TestRegenInit(t *testing.T) {
 		"msg": {}
 	}`
 
-	res, err = Run(regen, "send", []interface{}{goodSend})
+	res, err = Run(store, key, regen, "send", []interface{}{goodSend})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

@@ -11,11 +11,22 @@ import (
 
 var (
 	curInstance *wasm.Instance
+	curStore    sdk.KVStore
+	curKey      []byte
 )
 
-// Read loads a wasm file
-func Read(filename string) ([]byte, error) {
+// ReadWasmFromFile loads a wasm file
+func ReadWasmFromFile(filename string) ([]byte, error) {
 	return wasm.ReadBytes(filename)
+}
+
+func ReadDB() string {
+	bz := curStore.Get(curKey)
+	return string(bz)
+}
+
+func WriteDB(val string) {
+	curStore.Set(curKey, []byte(val))
 }
 
 // WasmString can be called by a go function provided into Imports
@@ -48,15 +59,19 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 		_, _ = deallocate(outputPointer, lengthOfOutput)
 	}
 
-	// TODO
-	// deallocate(inputPointer, lengthOfSubject)
-
 	return str, nil
 }
 
 // Run will execute the named function on the wasm bytes with the passed arguments.
 // Parses json response. Also returns error is the contract sets "error" in json response
-func Run(code []byte, call string, args []interface{}) (*SendResponse, sdk.Error) {
+func Run(store sdk.KVStore, key []byte, code []byte, call string, args []interface{}) (*SendResponse, sdk.Error) {
+	curStore = store
+	curKey = key
+	defer func() {
+		curStore = nil
+		curKey = nil
+	}()
+
 	res, err := run(code, call, args, AsString)
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())
