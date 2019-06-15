@@ -30,9 +30,10 @@ func TestRegenInit(t *testing.T) {
 	data = "{}"
 
 	initMsg := `{
+		"contract_address": "deadbeef",
 		"sender": "0123456789",
-		"init_funds": 1000,
-		"init_msg": {
+		"sent_funds": 1000,
+		"msg": {
 			"verifier": "ethan",
 			"beneficiary": "jehan"
 		}
@@ -56,9 +57,10 @@ func TestRegenInit(t *testing.T) {
 	}
 
 	unauthSend := `{
+		"contract_address": "deadbeef",
 		"sender": "0123456789",
-		"payment": 20,
-		"msg": "TODO"
+		"sent_funds": 50,
+		"msg": {}
 	}`
 
 	res, err = Run(regen, "send", []interface{}{unauthSend})
@@ -67,9 +69,10 @@ func TestRegenInit(t *testing.T) {
 	}
 
 	goodSend := `{
+		"contract_address": "deadbeef",
 		"sender": "ethan",
-		"payment": 20,
-		"msg": "TODO"
+		"sent_funds": 50,
+		"msg": {}
 	}`
 
 	res, err = Run(regen, "send", []interface{}{goodSend})

@@ -35,9 +35,10 @@ pub extern "C" fn deallocate(pointer: *mut c_void, capacity: usize) {
 
 #[derive(Serialize, Deserialize)]
 struct MsgCreateContract<'a> {
+    contract_address: &'a str,
     sender: &'a str,
-    init_msg: RegenInitMsg<'a>,
-    init_funds: u64,
+    msg: RegenInitMsg<'a>,
+    sent_funds: u64,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -67,9 +68,9 @@ pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
     let params = pres.unwrap();
 
     let state: String<U1024> = to_string(&RegenState {
-        verifier: params.init_msg.verifier,
-        beneficiary: params.init_msg.beneficiary,
-        payout: params.init_funds,
+        verifier: params.msg.verifier,
+        beneficiary: params.msg.beneficiary,
+        payout: params.sent_funds,
     })
     .unwrap();
 
@@ -82,9 +83,10 @@ pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
 
 #[derive(Serialize, Deserialize)]
 struct MsgSendContract<'a> {
+    contract_address: &'a str,
     sender: &'a str,
-    msg: &'a str,
-    payment: u64,
+    msg: RegenSendMsg,
+    sent_funds: u64,
 }
 
 #[derive(Serialize, Deserialize)]

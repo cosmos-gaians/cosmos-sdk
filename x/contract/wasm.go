@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -55,12 +56,16 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 
 // Run will execute the named function on the wasm bytes with the passed arguments.
 // Parses json response. Also returns error is the contract sets "error" in json response
-func Run(code []byte, call string, args []interface{}) (*SendResponse, error) {
+func Run(code []byte, call string, args []interface{}) (*SendResponse, sdk.Error) {
 	res, err := run(code, call, args, AsString)
 	if err != nil {
-		return nil, err
+		return nil, sdk.ErrUnknownRequest(err.Error())
 	}
-	return ParseResponse(res.(string))
+	out, err := ParseResponse(res.(string))
+	if err != nil {
+		return nil, sdk.ErrUnknownRequest(err.Error())
+	}
+	return out, nil
 }
 
 // run will execute the named function on the wasm bytes with the passed arguments.

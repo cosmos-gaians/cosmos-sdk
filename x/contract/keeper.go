@@ -2,7 +2,9 @@ package contract
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -77,6 +79,13 @@ func addrFromUint64(id uint64) sdk.AccAddress {
 	return addr[:n+1]
 }
 
+type contractMsg struct {
+	ContractAddress sdk.AccAddress  `json:"contract_address"`
+	Sender          sdk.AccAddress  `json:"sender"`
+	Msg             json.RawMessage `json:"msg"`
+	SentFunds       int64           `json:"sent_funds"`
+}
+
 func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId CodeID, initData []byte, coins sdk.Coins) (sdk.AccAddress, sdk.Error) {
 	// Create a contract address
 	addr := k.getNewContractId(ctx)
@@ -88,7 +97,7 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 	}
 
 	// Deposit initial contract funds
-	k.accountKeeper.SetAccount(ctx, &auth.BaseAccount{Address:addr})
+	k.accountKeeper.SetAccount(ctx, &auth.BaseAccount{Address: addr})
 	err := k.bankKeeper.SendCoins(ctx, creator, addr, coins)
 	if err != nil {
 		return nil, err
@@ -106,10 +115,28 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 	// Store secondary index to look up contracts using a specific CodeID
 	store.Set(KeyCodeHasContract(codeId, addr), []byte{0})
 
-	// Call into WASM
-	panic("TODO")
+	msg := contractMsg{
+		ContractAddress: addr,
+		Sender:          creator,
+		Msg:             initData,
+		SentFunds:       100, // TODO
+	}
+	txtMsg, stdErr := json.Marshal(msg)
+	if stdErr != nil {
+		return nil, sdk.ErrUnknownRequest(stdErr.Error())
+	}
 
-	//return addr, nil
+	// TODO: setup proper db key to expose for Read/Write
+	res, err := Run(codeBz, "init", []interface{}{txtMsg})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(res.Msgs) != 0 {
+		panic("foo")
+	}
+
+	return addr, nil
 }
 
 func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sdk.AccAddress, msg []byte, coins sdk.Coins) sdk.Result {
@@ -131,8 +158,31 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest("can't find contract code").Result()
 	}
 
+	cmsg := contractMsg{
+		ContractAddress: contract,
+		Sender:          sender,
+		Msg:             msg,
+		SentFunds:       100, // TODO
+	}
+	txtMsg, stdErr := json.Marshal(cmsg)
+	if stdErr != nil {
+		return sdk.ErrUnknownRequest(stdErr.Error()).Result()
+	}
+
+	// TODO: setup proper db key to expose for Read/Write
+	res, err := Run(codeBz, "send", []interface{}{txtMsg})
+	if err != nil {
+		return err.Result()
+	}
+
+	if len(res.Msgs) != 1 {
+		panic("foo")
+	}
+	// TODO: execute messages
+
 	// Retrieve state
 	//stateBz := store.Get(KeyContractState(contract))
 
-	panic("TODO")
+	// TODO: what is sdk success?????
+	return sdk.Result{}
 }
