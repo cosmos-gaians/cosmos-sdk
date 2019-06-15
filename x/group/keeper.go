@@ -174,7 +174,7 @@ func MustDecodeProposalIDBech32(bech string) []byte {
 	return data
 }
 
-func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action delegate.Action) ([]byte, sdk.Result) {
+func (keeper Keeper) Propose(ctx sdk.Context, proposer sdk.AccAddress, action sdk.Msg) ([]byte, sdk.Result) {
 	// TODO
 	//canHandle, res := keeper.handler.CheckProposal(ctx, action)
 	//if !canHandle {

@@ -1,60 +1,40 @@
 package delegate
 
 import (
-	cosmos "github.com/cosmos/cosmos-sdk/types"
-	"regexp"
+	"bytes"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type dispatcher struct {
 	Keeper
-	Router
+	Router sdk.Router
 }
 
-func NewDispatcher(k Keeper, r Router) Dispatcher {
+func NewDispatcher(k Keeper, r sdk.Router) Dispatcher {
 	return &dispatcher{k, r}
 }
 
-func (dispatcher dispatcher) DispatchAction(ctx cosmos.Context, sender cosmos.AccAddress, action Action) cosmos.Result {
-	caps := action.RequiredCapabilities()
-	for _, c := range caps {
-		if !dispatcher.HasCapability(ctx, sender, ActorCapability{c, action.Actor()}) {
-			return cosmos.ErrUnauthorized("actor does not have capability").Result()
+func (dispatcher dispatcher) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {
+	signers := msg.GetSigners()
+	if len(signers) != 1 {
+		return sdk.ErrUnknownRequest("can only dispatch a delegated msg with 1 signer").Result()
+	}
+	actor := signers[0]
+	if !bytes.Equal(actor, sender) {
+		cap := dispatcher.GetCapability(ctx, sender, actor, msg)
+		if cap == nil {
+			return sdk.ErrUnauthorized("unauthorized").Result()
+		}
+		allow, updated, delete := cap.Accept(msg, ctx.BlockHeader())
+		if !allow {
+			return sdk.ErrUnauthorized("unauthorized").Result()
+		}
+		if delete {
+			dispatcher.Undelegate(ctx, sender, actor, msg)
+		} else if updated != nil {
+			//dispatcher.update(ctx, sender, actor, updated)
 		}
 	}
-	for _, route := range dispatcher.routes {
-		if route.r == action.Route() {
-			return route.h.HandleAction(ctx, action)
-		}
-	}
-	return cosmos.ErrUnknownRequest("can't find action handler").Result()
+	return dispatcher.Router.Route(msg.Route())(ctx, msg)
 }
 
-type ActionHandler interface {
-	HandleAction(ctx cosmos.Context, action Action) cosmos.Result
-}
-type route struct {
-	r string
-	h ActionHandler
-}
-
-type Router struct {
-	// TODO change this to a map
-	routes []route
-}
-
-func NewRouter() *Router {
-	return &Router{
-		routes: make([]route, 0),
-	}
-}
-
-var isAlphaNumeric = regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
-
-func (rtr *Router) AddRoute(r string, h ActionHandler) *Router {
-	if !isAlphaNumeric(r) {
-		panic("route expressions can only contain alphanumeric characters")
-	}
-	rtr.routes = append(rtr.routes, route{r, h})
-
-	return rtr
-}

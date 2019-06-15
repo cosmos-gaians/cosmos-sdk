@@ -1,10 +1,10 @@
 package delegate
 
-import cosmos "github.com/cosmos/cosmos-sdk/types"
+import sdk "github.com/cosmos/cosmos-sdk/types"
 
 type MsgDelegatedAction struct {
-	Actor  cosmos.AccAddress
-	Action Action
+	Actor  sdk.AccAddress
+	Action sdk.Msg
 }
 
 func (msg MsgDelegatedAction) Route() string {
@@ -15,7 +15,7 @@ func (msg MsgDelegatedAction) Type() string {
 	panic("implement me")
 }
 
-func (msg MsgDelegatedAction) ValidateBasic() cosmos.Error {
+func (msg MsgDelegatedAction) ValidateBasic() sdk.Error {
 	panic("implement me")
 }
 
@@ -23,6 +23,6 @@ func (msg MsgDelegatedAction) GetSignBytes() []byte {
 	panic("implement me")
 }
 
-func (msg MsgDelegatedAction) GetSigners() []cosmos.AccAddress {
-	return []cosmos.AccAddress{msg.Actor}
+func (msg MsgDelegatedAction) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{msg.Actor}
 }
