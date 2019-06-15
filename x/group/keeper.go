@@ -38,12 +38,16 @@ func (acc *GroupAccount) SetPubKey(pubKey crypto.PubKey) error {
 }
 
 var (
-	keyNewGroupID = []byte("newGroupID")
+	keyNewGroupID    = []byte("newGroupID")
 	keyNewProposalID = []byte("newProposalID")
 )
 
 func KeyGroupID(id sdk.AccAddress) []byte {
 	return []byte(fmt.Sprintf("g/%x", id))
+}
+
+func KeyGroupIDByMemberAddress(addr sdk.AccAddress, id sdk.AccAddress) []byte {
+	return []byte(fmt.Sprintf("g/%x/%x", addr, id))
 }
 
 func KeyProposal(id ProposalID) []byte {
@@ -65,6 +69,46 @@ func (keeper Keeper) GetGroupInfo(ctx sdk.Context, id sdk.AccAddress) (info Grou
 		return info, sdk.ErrUnknownRequest(marshalErr.Error())
 	}
 	return info, nil
+}
+
+// GetGroups gets all groups
+func (keeper Keeper) GetGroups(ctx sdk.Context) []Group {
+	prefix := fmt.Sprintf("g/")
+	prefixBytes := []byte(prefix)
+	store := ctx.KVStore(keeper.storeKey)
+	var groups []Group
+	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var group Group
+		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &group)
+		groups = append(groups, group)
+	}
+
+	return groups
+}
+
+// GetGroupsByMemberAddress get groups that I'm a member of
+// key: g/%x/%x
+// g/[member address]/[group id] -> [group id]
+func (keeper Keeper) GetGroupsByMemberAddress(ctx sdk.Context, memberAddr sdk.AccAddress) []Group {
+	prefix := fmt.Sprintf("g/%x/", memberAddr)
+	prefixBytes := []byte(prefix)
+	store := ctx.KVStore(keeper.storeKey)
+	var groups []Group
+	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var groupID sdk.AccAddress
+		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &groupID)
+		group, err := keeper.GetGroupInfo(ctx, groupID)
+		if err != nil {
+			panic(err)
+		}
+		groups = append(groups, group)
+	}
+
+	return groups
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
@@ -99,6 +143,14 @@ func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, s
 		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("account with address %s already exists", id.String()))
 	}
 	keeper.accountKeeper.SetAccount(ctx, acct)
+
+	// iterate through members in group and add member <-> group id association
+	for _, member := range info.Members {
+		key := KeyGroupIDByMemberAddress(member.Address, id)
+		store := ctx.KVStore(keeper.storeKey)
+		store.Set(key, id)
+	}
+
 	return id, nil
 }
 
@@ -170,11 +222,11 @@ func MustDecodeProposalIDBech32(bech string) ProposalID {
 	if hrp != Bech32Prefix {
 		panic(fmt.Sprintf("Expected bech32 prefix %s", Bech32Prefix))
 	}
-    id, err := binary.ReadUvarint(bytes.NewBuffer(data))
-    if err != nil {
-    	panic(err)
+	id, err := binary.ReadUvarint(bytes.NewBuffer(data))
+	if err != nil {
+		panic(err)
 	}
-    return ProposalID(id)
+	return ProposalID(id)
 }
 
 func (keeper Keeper) getNewProposalId(ctx sdk.Context) ProposalID {
