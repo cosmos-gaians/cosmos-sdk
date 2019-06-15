@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -54,10 +55,11 @@ func TestRegenInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	// Returns "Could not parse MsgSendContract json." on parse error
-	if res.(string) != "Could not parse MsgSendContract json." {
-		t.Fatalf("Unexpected result: %d", res)
+	_, err = ParseResponse(res.(string))
+	if err == nil {
+		t.Fatal("Allowed bad json")
 	}
+	fmt.Printf("%v\n", err)
 
 	unauthSend := `{
 		"sender": "0123456789",
@@ -69,9 +71,9 @@ func TestRegenInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	// Returns "" on error
-	if res.(string) != "" {
-		t.Fatalf("Unexpected result: %d", res)
+	_, err = ParseResponse(res.(string))
+	if err == nil {
+		t.Fatal("Allowed no auth")
 	}
 
 	goodSend := `{
@@ -84,9 +86,13 @@ func TestRegenInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
+	out, err := ParseResponse(res.(string))
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
 	// This is placeholder on success
-	if res.(string) != "Send tx goes here !!!" {
-		t.Fatalf("Unexpected result: %d", res)
+	if out.Result != "Send tx goes here !!!" {
+		t.Fatalf("Unexpected result: %s", out.Result)
 	}
 
 }

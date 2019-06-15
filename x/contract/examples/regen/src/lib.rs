@@ -98,15 +98,19 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
 
     let pres: serde_json_core::de::Result<MsgSendContract> = from_slice(&params);
     if pres.is_err() {
-        return CString::new("Could not parse MsgSendContract json.").unwrap().into_raw()
+        return CString::new(r#"{"error": "Could not parse MsgSendContract json."}"#).unwrap().into_raw()
     }
     let params = pres.unwrap();
 
-    let state: RegenState = from_slice(&state).expect("Could not parse RegenState json.");
+    let sres: serde_json_core::de::Result<RegenState> = from_slice(&state);
+    if sres.is_err() {
+        return CString::new(r#"{"error": "Could not parse RegenState json."}"#).unwrap().into_raw()
+    }
+    let state = sres.unwrap();
 
     if params.sender == state.verifier {
-        CString::new("Send tx goes here !!!").unwrap().into_raw()
+        CString::new(r#"{"result": "Send tx goes here !!!"}"#).unwrap().into_raw()
     } else {
-        CString::new("").unwrap().into_raw()
+        CString::new(r#"{"error": "Unauthorized"}"#).unwrap().into_raw()
     }
 }
