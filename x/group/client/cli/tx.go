@@ -2,6 +2,8 @@ package cli
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -10,7 +12,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/delegate"
 	"github.com/cosmos/cosmos-sdk/x/group"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func membersFromArray(arr []string) []group.Member {
