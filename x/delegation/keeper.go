@@ -8,13 +8,11 @@ import (
 	"time"
 )
 
-type keeper struct {
+type Keeper struct {
 	storeKey sdk.StoreKey
 	cdc      *codec.Codec
 	router sdk.Router
 }
-
-var _ Dispatcher = keeper{}
 
 type capabilityGrant struct {
 	capability Capability
@@ -23,14 +21,14 @@ type capabilityGrant struct {
 }
 
 func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, router sdk.Router) Keeper {
-	return &keeper{storeKey, cdc, router}
+	return Keeper{storeKey, cdc, router}
 }
 
 func ActorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, msg sdk.Msg) []byte {
 	return []byte(fmt.Sprintf("c/%s/%s/%s/%s", grantee, granter, msg.Route(), msg.Type()))
 }
 
-func (k keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
+func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(ActorCapabilityKey(grantee, granter, msgType))
 	if bz == nil {
@@ -40,13 +38,13 @@ func (k keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, gran
 	return grant, true
 }
 
-func (k keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, grantor sdk.AccAddress, capability Capability, expiration time.Time) {
+func (k Keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(capabilityGrant{capability, expiration})
-	store.Set(ActorCapabilityKey(grantee, grantor, capability.MsgType()), bz)
+	store.Set(ActorCapabilityKey(grantee, granter, capability.MsgType()), bz)
 }
 
-func (k keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
+func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
 	grant, found := k.getCapabilityGrant(ctx, grantee, granter, updated.MsgType())
 	if !found {
 		return
@@ -54,12 +52,12 @@ func (k keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 	grant.capability = updated
 }
 
-func (k keeper) Undelegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
+func (k Keeper) Undelegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(ActorCapabilityKey(grantee, granter, msgType))
 }
 
-func (k keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) Capability {
+func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) Capability {
 	grant, found := k.getCapabilityGrant(ctx, grantee, granter, msgType)
 	if !found {
 		return nil
@@ -71,22 +69,22 @@ func (k keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	return grant.capability
 }
 
-func (k keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {
+func (k Keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {
 	signers := msg.GetSigners()
 	if len(signers) != 1 {
 		return sdk.ErrUnknownRequest("can only dispatch a delegated msg with 1 signer").Result()
 	}
 	actor := signers[0]
 	if !bytes.Equal(actor, sender) {
-		cap := k.GetCapability(ctx, sender, actor, msg)
-		if cap == nil {
+		capability := k.GetCapability(ctx, sender, actor, msg)
+		if capability == nil {
 			return sdk.ErrUnauthorized("unauthorized").Result()
 		}
-		allow, updated, delete := cap.Accept(msg, ctx.BlockHeader())
+		allow, updated, del := capability.Accept(msg, ctx.BlockHeader())
 		if !allow {
 			return sdk.ErrUnauthorized("unauthorized").Result()
 		}
-		if delete {
+		if del {
 			k.Undelegate(ctx, sender, actor, msg)
 		} else if updated != nil {
 			k.update(ctx, sender, actor, updated)
