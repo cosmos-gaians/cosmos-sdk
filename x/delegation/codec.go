@@ -9,4 +9,5 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgExecDelegatedAction{}, "delegation/MsgExecDelegatedAction", nil)
 	cdc.RegisterConcrete(MsgDelegate{}, "delegation/MsgDelegate", nil)
 	cdc.RegisterConcrete(MsgRevoke{}, "delegation/MsgRevoke", nil)
+	cdc.RegisterConcrete(capabilityGrant{}, "delegation/capabilityGrant", nil)
 }

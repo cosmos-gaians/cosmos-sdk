@@ -38,6 +38,10 @@ func KeyContractState(id sdk.AccAddress) []byte {
 	return []byte(fmt.Sprintf("s/%x", id))
 }
 
+func KeyCodeHasContract(id CodeID, contract sdk.AccAddress) []byte {
+	return []byte(fmt.Sprintf("cc/%x/%x", id, contract))
+}
+
 func (k Keeper) autoIncrementID(ctx sdk.Context, nextIdKey []byte) uint64 {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(nextIdKey)
@@ -99,6 +103,8 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 
 	// Store contract code ID
 	store.Set(KeyContractCode(addr), k.cdc.MustMarshalBinaryBare(codeId))
+	// Store secondary index to look up contracts using a specific CodeID
+	store.Set(KeyCodeHasContract(codeId, addr), []byte{0})
 
 	// Call into WASM
 	panic("TODO")

@@ -28,6 +28,10 @@ func ActorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, msg sdk.
 	return []byte(fmt.Sprintf("c/%x/%x/%s/%s", grantee, granter, msg.Route(), msg.Type()))
 }
 
+func FeeAllowanceKey(grantee sdk.AccAddress, granter sdk.AccAddress) []byte {
+	return []byte(fmt.Sprintf("f/%x/%x", grantee, granter))
+}
+
 func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(ActorCapabilityKey(grantee, granter, msgType))
@@ -93,3 +97,36 @@ func (k Keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.M
 	return k.router.Route(msg.Route())(ctx, msg)
 }
 
+func (k Keeper) DelegateFeeAllowance(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, allowance FeeAllowance) {
+	store := ctx.KVStore(k.storeKey)
+	bz := k.cdc.MustMarshalBinaryBare(allowance)
+	store.Set(FeeAllowanceKey(grantee, granter), bz)
+}
+
+func (k Keeper) RevokeFeeAllowance(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress) {
+	store := ctx.KVStore(k.storeKey)
+	store.Delete(FeeAllowanceKey(grantee, granter))
+}
+
+func (k Keeper) AllowDelegatedFees(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, fee sdk.Coins) bool {
+	store := ctx.KVStore(k.storeKey)
+	bz := store.Get(FeeAllowanceKey(grantee, granter))
+	if len(bz) == 0 {
+		return false
+	}
+	var allowance FeeAllowance
+	k.cdc.MustUnmarshalBinaryBare(bz, &allowance)
+	if allowance == nil {
+		return false
+	}
+	allow, updated, delete := allowance.Accept(fee, ctx.BlockHeader())
+	if allow == false {
+		return false
+	}
+	if delete {
+		k.RevokeFeeAllowance(ctx, grantee, granter)
+	} else if updated != nil {
+		k.DelegateFeeAllowance(ctx, grantee, granter, updated)
+	}
+	return true
+}
