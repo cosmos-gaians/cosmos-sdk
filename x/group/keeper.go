@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -17,10 +18,10 @@ type Keeper struct {
 	groupStoreKey sdk.StoreKey
 	cdc           *codec.Codec
 	accountKeeper auth.AccountKeeper
-	dispatcher    delegation.Dispatcher
+	dispatcher    delegation.Keeper
 }
 
-func NewKeeper(groupStoreKey sdk.StoreKey, cdc *codec.Codec, accountKeeper auth.AccountKeeper, dispatcher delegation.Dispatcher) Keeper {
+func NewKeeper(groupStoreKey sdk.StoreKey, cdc *codec.Codec, accountKeeper auth.AccountKeeper, dispatcher delegation.Keeper) Keeper {
 	return Keeper{
 		groupStoreKey,
 		cdc,

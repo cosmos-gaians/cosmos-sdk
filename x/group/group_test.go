@@ -9,7 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/params"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	//"github.com/tendermint/tendermint/crypto"
 	//"github.com/tendermint/tendermint/crypto/secp256k1"
@@ -31,7 +31,7 @@ func setupTestInput() {
 	RegisterCodec(cdc)
 
 	paramsKey := sdk.NewKVStoreKey("params")
-	tparamsKey := sdk.NewTransientStoreKey("tparams")
+	// tparamsKey := sdk.NewTransientStoreKey("tparams")
 	accKey := sdk.NewKVStoreKey("acc")
 	groupKey := sdk.NewKVStoreKey("groupKey")
 
@@ -41,9 +41,10 @@ func setupTestInput() {
 	ms.MountStoreWithDB(groupKey, sdk.StoreTypeIAVL, db)
 	_ = ms.LoadLatestVersion()
 
-	paramsKeeper := params.NewKeeper(cdc, paramsKey, tparamsKey, params.DefaultCodespace)
-	accKeeper := auth.NewAccountKeeper(cdc, accKey, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
-	keeper = NewKeeper(groupKey, cdc, accKeeper, nil)
+	// paramsKeeper := params.NewKeeper(cdc, paramsKey, tparamsKey, params.DefaultCodespace)
+	// accKeeper := auth.NewAccountKeeper(cdc, accKey, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+
+	// keeper = NewKeeper(groupKey, cdc, accKeeper, nil)
 	ctx = sdk.NewContext(ms, abci.Header{ChainID: "test-chain-id"}, false, log.NewNopLogger())
 }
 
