@@ -118,7 +118,7 @@ func TestKeeperRegen(t *testing.T) {
 	require.True(t, input.bk.GetCoins(ctx, addr2).IsEqual(sdk.NewCoins()))
 
 	res = input.ck.SendContract(input.ctx, addr, contract, []byte("{}"), sdk.NewCoins(sdk.NewInt64Coin("tree", 5)))
-	require.True(t, res.IsOK())
+	require.True(t, res.IsOK(), "%v", res)
 
 	require.True(t, input.bk.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 9495))))
 	require.True(t, input.bk.GetCoins(ctx, contract).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 0))))

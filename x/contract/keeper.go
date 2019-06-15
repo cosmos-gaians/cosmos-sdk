@@ -166,6 +166,8 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest("can't find contract code").Result()
 	}
 
+	fmt.Println("foo")
+
 	cmsg := contractMsg{
 		ContractAddress: contract,
 		Sender:          sender,
@@ -177,13 +179,18 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest(stdErr.Error()).Result()
 	}
 
+	fmt.Println("bar")
+
 	res, err := Run(k.cdc, store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
 	if err != nil {
 		return err.Result()
 	}
 
+	fmt.Println("baz")
+
 	out := sdk.Result{}
 	for _, msg := range res.Msgs {
+		fmt.Printf("msg: %#v\n", msg)
 		out = k.delegationKeeper.DispatchAction(ctx, contract, msg)
 		if !out.IsOK() {
 			return out
