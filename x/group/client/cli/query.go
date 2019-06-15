@@ -21,7 +21,31 @@ func GetCmdGetGroup(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/get/%s", queryRoute, id), nil)
 			if err != nil {
 				fmt.Println(err)
-				fmt.Printf("could not resolve group - %s \n", string(id))
+				fmt.Printf("could not resolve group - %s \n", id)
+				return nil
+			}
+
+			fmt.Println(string(res))
+
+			return nil
+		},
+	}
+}
+
+// GetCmdProposal queries information about an proposal
+func GetCmdGetProposal(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "proposal [id]",
+		Short: "get proposal by id",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			id := args[0]
+
+			res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/get/%s", queryRoute, id), nil)
+			if err != nil {
+				fmt.Println(err)
+				fmt.Printf("could not resolve proposal - %s \n", id)
 				return nil
 			}
 

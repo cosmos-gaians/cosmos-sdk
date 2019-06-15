@@ -14,13 +14,13 @@ type keeper struct {
 type capabilityGrant struct {
 	// all the actors that delegated this capability to the actor
 	// the capability should be cleared if root is false and this array is cleared
-	delegatedBy []cosmos.AccAddress `json:"delegated_by"`
+	delegatedBy []cosmos.AccAddress
 
 	// whenever this capability is undelegated or revoked, these delegations
 	// need to be cleared recursively
-	delegatedTo []cosmos.AccAddress `json:"delegated_to"`
+	delegatedTo []cosmos.AccAddress
 
-	capability Capability `json:"capability"`
+	capability Capability
 }
 
 func NewKeeper(storeKey cosmos.StoreKey, cdc *codec.Codec) Keeper {
