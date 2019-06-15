@@ -52,7 +52,7 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 	grant.capability = updated
 }
 
-func (k Keeper) Undelegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
+func (k Keeper) Revoke(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(ActorCapabilityKey(grantee, granter, msgType))
 }
@@ -63,7 +63,7 @@ func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 		return nil
 	}
 	if !grant.expiration.IsZero() && grant.expiration.Before(ctx.BlockHeader().Time) {
-		k.Undelegate(ctx, grantee, granter, msgType)
+		k.Revoke(ctx, grantee, granter, msgType)
 		return nil
 	}
 	return grant.capability
@@ -85,7 +85,7 @@ func (k Keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.M
 			return sdk.ErrUnauthorized("unauthorized").Result()
 		}
 		if del {
-			k.Undelegate(ctx, sender, actor, msg)
+			k.Revoke(ctx, sender, actor, msg)
 		} else if updated != nil {
 			k.update(ctx, sender, actor, updated)
 		}

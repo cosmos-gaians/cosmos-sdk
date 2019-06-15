@@ -2,17 +2,23 @@ package delegation
 
 import (
 	"fmt"
-	cosmos "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-func NewHandler(k Keeper) cosmos.Handler {
-	return func(ctx cosmos.Context, msg cosmos.Msg) cosmos.Result {
+func NewHandler(k Keeper) sdk.Handler {
+	return func(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		switch msg := msg.(type) {
-		case MsgDelegatedAction:
+		case MsgDelegate:
+			k.Delegate(ctx, msg.Grantee, msg.Granter, msg.Capability, msg.Expiration)
+			return sdk.Result{}
+		case MsgExecDelegatedAction:
 			return k.DispatchAction(ctx, msg.Actor, msg.Action)
+		case MsgRevoke:
+			k.Revoke(ctx, msg.Grantee, msg.Granter, msg.MsgType)
+			return sdk.Result{}
 		default:
 			errMsg := fmt.Sprintf("Unrecognized data Msg type: %v", msg.Type())
-			return cosmos.ErrUnknownRequest(errMsg).Result()
+			return sdk.ErrUnknownRequest(errMsg).Result()
 		}
 	}
 }
