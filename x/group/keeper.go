@@ -86,7 +86,7 @@ func (keeper Keeper) getNewGroupId(ctx sdk.Context) sdk.AccAddress {
 	return addrFromUint64(groupId)
 }
 
-func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, error) {
+func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, sdk.Error) {
 	id := keeper.getNewGroupId(ctx)
 	keeper.setGroupInfo(ctx, id, info)
 	acct := &GroupAccount{
@@ -96,7 +96,7 @@ func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, e
 	}
 	existingAcc := keeper.accountKeeper.GetAccount(ctx, id)
 	if existingAcc != nil {
-		return nil, fmt.Errorf("account with address %s already exists", id.String())
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("account with address %s already exists", id.String()))
 	}
 	keeper.accountKeeper.SetAccount(ctx, acct)
 	return id, nil
