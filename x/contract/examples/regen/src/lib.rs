@@ -1,6 +1,7 @@
 extern crate heapless;
 extern crate serde;
 extern crate serde_json_core;
+extern crate numtoa;
 
 use serde::{Deserialize, Serialize};
 use serde_json_core::de::from_slice;
@@ -11,6 +12,8 @@ use std::os::raw::{c_char, c_void};
 
 use heapless::consts::U1024;
 use heapless::String;
+
+use numtoa::NumToA;
 
 extern "C" {
     fn read() -> *mut c_char;
@@ -120,12 +123,15 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
     }
     let mut state = sres.unwrap();
 
-    let funds = state.payout + params.sent_funds;
 
     if params.sender == state.verifier {
+        // format how much money to produce
+        let funds = state.payout + params.sent_funds;
+        // let mut amount = [0u8; 20];
+        // funds.numtoa_str(10, &mut amount);
+
         state.payout = 0;
         let state_str: String<U1024> = to_string(&state).unwrap();
-
         unsafe {
             write(CString::new(state_str.as_bytes()).unwrap().into_raw());
         }
@@ -137,28 +143,36 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
         //             "from_address":""#.to_vec();
         // output.extend(state.verifier.to_vec())
 
-// state.verifier
-// state.beneficiary
-// funds
-        CString::new(
-            r#"{"msgs":[
+        let mut output = br#"{"msgs":[
             {
                 "type":"cosmos-sdk/MsgSend",
                 "value":{
-                    "from_address":"cosmos157ez5zlaq0scm9aycwphhqhmg3kws4qusmekll",  
-                    "to_address":"cosmos1rjxwm0rwyuldsg00qf5lt26wxzzppjzxs2efdw",  
+                    "from_address":""#.to_vec();
+        // params.contract
+        let outb = br#"",  
+                    "to_address":""#.to_vec();
+        // state.beneficiary            
+        let outc = br#"",  
                     "amount":[
                         {
                             "denom":"tree",
-                            "amount":"1000"  
+                            "amount":""#.to_vec();
+        // amount
+        let amount = b"500".to_vec();
+        let outd = br#""  
                         }
                     ]
                 }
             }
-        ]}"#,
-        )
-        .unwrap()
-        .into_raw()
+        ]}"#.to_vec();
+        output.extend(params.contract_address.bytes());
+        output.extend(outb);
+        output.extend(state.beneficiary.bytes());
+        output.extend(outc);
+        output.extend(amount);
+        output.extend(outd);
+
+        CString::new(output).unwrap().into_raw()
     } else {
         CString::new(r#"{"error": "Unauthorized"}"#)
             .unwrap()
