@@ -7,7 +7,6 @@ import (
 
 // Defines delegation module constants
 const (
-	StoreKey     = ModuleName
 	RouterKey    = ModuleName
 	QuerierRoute = ModuleName
 )

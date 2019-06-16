@@ -2,7 +2,6 @@ package contract
 
 // Defines contract module constants
 const (
-	StoreKey     = ModuleName
 	RouterKey    = ModuleName
 	QuerierRoute = ModuleName
 )
