@@ -65,8 +65,8 @@ func queryGroups(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 }
 
 func queryGroupsByMemberAddress(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	// addressStr := path[0]
-	req.Data
+	addressStr := path[0]
+	// req.Data
 	decodedAddress, e := sdk.AccAddressFromBech32(addressStr)
 	if e != nil {
 		return []byte{}, sdk.ErrUnknownRequest("could not decode member address")
