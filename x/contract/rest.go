@@ -14,7 +14,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
-		"/contracts/state/{addr}",
+		"/contract/state/{addr}",
 		contractStateHandlerFn(cliCtx),
 	).Methods("GET")
 }
