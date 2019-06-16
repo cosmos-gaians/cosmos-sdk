@@ -74,14 +74,14 @@ type SendCapability struct {
 var _ delegation.Capability = SendCapability{}
 
 func (cap SendCapability) MsgType() sdk.Msg {
-    return MsgSend{}
+	return MsgSend{}
 }
 
 func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegation.Capability, delete bool) {
 	switch msg := msg.(type) {
 	case MsgSend:
-		left, valid := cap.SpendLimit.SafeSub(msg.Amount)
-		if !valid {
+		left, invalid := cap.SpendLimit.SafeSub(msg.Amount)
+		if invalid {
 			return false, nil, false
 		}
 		if left.IsZero() {
@@ -90,6 +90,26 @@ func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, up
 		return true, SendCapability{SpendLimit: left}, false
 	}
 	return false, nil, false
+}
+
+type FeeCapability struct {
+	// SpendLimit specifies the maximum amount of tokens that can be spent
+	// by this capability and will be updated as tokens are spent. If it is
+	// empty, there is no spend limit and any amount of coins can be spent.
+	SpendLimit sdk.Coins
+}
+
+var _ delegation.FeeAllowance = FeeCapability{}
+
+func (cap FeeCapability) Accept(fee sdk.Coins, block abci.Header) (allow bool, updated delegation.FeeAllowance, delete bool) {
+	left, invalid := cap.SpendLimit.SafeSub(fee)
+	if invalid {
+		return false, nil, false
+	}
+	if left.IsZero() {
+		return true, nil, true
+	}
+	return true, FeeCapability{SpendLimit: left}, false
 }
 
 // MsgMultiSend - high level transaction of the coin module

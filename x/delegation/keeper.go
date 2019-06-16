@@ -3,21 +3,22 @@ package delegation
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"time"
 )
 
 type Keeper struct {
 	storeKey sdk.StoreKey
 	cdc      *codec.Codec
-	router sdk.Router
+	router   sdk.Router
 }
 
 type capabilityGrant struct {
-	capability Capability
+	Capability Capability
 
-	expiration time.Time
+	Expiration time.Time
 }
 
 func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, router sdk.Router) Keeper {
@@ -34,7 +35,8 @@ func FeeAllowanceKey(grantee sdk.AccAddress, granter sdk.AccAddress) []byte {
 
 func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(ActorCapabilityKey(grantee, granter, msgType))
+	actor := ActorCapabilityKey(grantee, granter, msgType)
+	bz := store.Get(actor)
 	if bz == nil {
 		return grant, false
 	}
@@ -45,7 +47,8 @@ func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, gran
 func (k Keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time) {
 	store := ctx.KVStore(k.storeKey)
 	bz := k.cdc.MustMarshalBinaryBare(capabilityGrant{capability, expiration})
-	store.Set(ActorCapabilityKey(grantee, granter, capability.MsgType()), bz)
+	actor := ActorCapabilityKey(grantee, granter, capability.MsgType())
+	store.Set(actor, bz)
 }
 
 func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
@@ -53,7 +56,7 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 	if !found {
 		return
 	}
-	grant.capability = updated
+	grant.Capability = updated
 }
 
 func (k Keeper) Revoke(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
@@ -66,11 +69,11 @@ func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	if !found {
 		return nil
 	}
-	if !grant.expiration.IsZero() && grant.expiration.Before(ctx.BlockHeader().Time) {
+	if !grant.Expiration.IsZero() && grant.Expiration.Before(ctx.BlockHeader().Time) {
 		k.Revoke(ctx, grantee, granter, msgType)
 		return nil
 	}
-	return grant.capability
+	return grant.Capability
 }
 
 func (k Keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {

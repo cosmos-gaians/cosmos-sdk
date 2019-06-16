@@ -1,20 +1,33 @@
-package examples
+package contract
 
 import (
 	"fmt"
 	"strings"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 var (
 	curInstance *wasm.Instance
+	curStore    sdk.KVStore
+	curKey      []byte
 )
 
-// Read loads a wasm file
-func Read(filename string) ([]byte, error) {
+// ReadWasmFromFile loads a wasm file
+func ReadWasmFromFile(filename string) ([]byte, error) {
 	return wasm.ReadBytes(filename)
+}
+
+func ReadDB() string {
+	bz := curStore.Get(curKey)
+	return string(bz)
+}
+
+func WriteDB(val string) {
+	curStore.Set(curKey, []byte(val))
 }
 
 // WasmString can be called by a go function provided into Imports
@@ -47,15 +60,34 @@ func AsString(instance wasm.Instance, res wasm.Value) (interface{}, error) {
 		_, _ = deallocate(outputPointer, lengthOfOutput)
 	}
 
-	// TODO
-	// deallocate(inputPointer, lengthOfSubject)
-
 	return str, nil
 }
 
 // Run will execute the named function on the wasm bytes with the passed arguments.
+// Parses json response. Also returns error is the contract sets "error" in json response
+func Run(cdc *amino.Codec, store sdk.KVStore, key []byte, code []byte, call string, args []interface{}) (*SendResponse, sdk.Error) {
+	curStore = store
+	curKey = key
+	defer func() {
+		curStore = nil
+		curKey = nil
+	}()
+
+	res, err := run(code, call, args, AsString)
+	if err != nil {
+		return nil, sdk.ErrUnknownRequest(err.Error())
+	}
+	fmt.Printf("From wasm: %s\n", res.(string))
+	out, err := ParseResponse(cdc, res.(string))
+	if err != nil {
+		return nil, sdk.ErrUnknownRequest(err.Error())
+	}
+	return out, nil
+}
+
+// run will execute the named function on the wasm bytes with the passed arguments.
 // Returns the result or an error
-func Run(code []byte, call string, args []interface{}, parse ResultParser) (interface{}, error) {
+func run(code []byte, call string, args []interface{}, parse ResultParser) (interface{}, error) {
 	imports, err := wasmImports()
 	if err != nil {
 		return nil, errors.Wrap(err, "creating imports")
@@ -85,7 +117,6 @@ func Run(code []byte, call string, args []interface{}, parse ResultParser) (inte
 	if err != nil {
 		return nil, errors.Wrap(err, "Execution failure")
 	}
-	fmt.Printf("%v: %v\n", ret.GetType(), ret)
 
 	return parse(instance, ret)
 }

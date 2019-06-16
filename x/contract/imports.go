@@ -1,4 +1,4 @@
-package examples
+package contract
 
 /*
 Imports are exposed to all wasm functions
@@ -39,15 +39,9 @@ func repeat(context unsafe.Pointer, pointer int32, length int32, count int32) in
 	return WasmString(res)
 }
 
-/*
-TODO: move this to the database
-*/
-var (
-	data = "{}"
-)
-
 //export read
 func read(context unsafe.Pointer) int32 {
+	data := ReadDB()
 	fmt.Printf("read: %s\n", data)
 	return WasmString(data)
 }
@@ -57,10 +51,9 @@ func write(context unsafe.Pointer, ptr int32) {
 	var instanceContext = wasm.IntoInstanceContext(context)
 	var memory = instanceContext.Memory().Data()
 	text := readString(memory[ptr:])
-	fmt.Printf("wrote: %s\n", text)
-	data = text
+	fmt.Printf("writing: %s\n", text)
+	WriteDB(text)
 }
-
 
 func wasmImports() (*wasm.Imports, error) {
 	imp, err := wasm.NewImports().Append("repeat", repeat, C.repeat)
