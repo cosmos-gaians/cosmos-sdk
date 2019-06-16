@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -85,6 +86,19 @@ const (
 	recipient = "cosmos1rjxwm0rwyuldsg00qf5lt26wxzzppjzxs2efdw"
 )
 
+func TestContractAccount(t *testing.T) {
+	cdc := MockCodec()
+
+	addr := addrFromUint64(10)
+	bz, err := cdc.MarshalJSON(addr)
+	require.NoError(t, err)
+	fmt.Println(string(bz))
+
+	var input sdk.AccAddress
+	err = cdc.UnmarshalJSON(bz, &input)
+	require.NoError(t, err)
+}
+
 func TestKeeperRegen(t *testing.T) {
 	input := setupTestInput()
 	ctx := input.ctx
@@ -106,12 +120,15 @@ func TestKeeperRegen(t *testing.T) {
 		Verifier:    addr,
 		Beneficiary: addr2,
 	}
+	fmt.Printf("%#v\n", initMsg)
 	rawMsg, err := input.cdc.MarshalJSON(initMsg)
 	require.NoError(t, err)
 
 	contract, res := input.ck.CreateContract(input.ctx, addr, codeID, rawMsg, sdk.NewCoins(sdk.NewInt64Coin("tree", 500)))
 	require.True(t, res.IsOK())
 	require.NotNil(t, contract)
+
+	fmt.Printf("-> CreateContract: %s\n", contract)
 
 	require.True(t, input.bk.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 9500))))
 	require.True(t, input.bk.GetCoins(ctx, contract).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 500))))

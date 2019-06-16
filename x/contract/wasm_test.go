@@ -39,12 +39,12 @@ func TestRegenInit(t *testing.T) {
 	store, key := mockKVStore()
 
 	initMsg := `{
-		"contract_address": "deadbeef",
-		"sender": "0123456789",
+		"contract_address": "cosmos1qz58hjld64vqmynzk5xdesvkr9walfmrl5pefr",
+		"sender": "cosmos1qtkc837fpfprvr2fcmuw6hgkesen4pxnhe2skl",
 		"sent_funds": 1000,
 		"msg": {
-			"verifier": "ethan",
-			"beneficiary": "jehan"
+			"verifier": "cosmos1qw4eww34ug66edg9mgsapgcgjuqcpyqxtcz6a5",
+			"beneficiary": "cosmos1qjzjfn55hygaak9l9x04z792mexce2zddws9pt"
 		}
 	}`
 
@@ -66,8 +66,8 @@ func TestRegenInit(t *testing.T) {
 	}
 
 	unauthSend := `{
-		"contract_address": "deadbeef",
-		"sender": "0123456789",
+		"contract_address": "cosmos1qz58hjld64vqmynzk5xdesvkr9walfmrl5pefr",
+		"sender": "cosmos1qtkc837fpfprvr2fcmuw6hgkesen4pxnhe2skl",
 		"sent_funds": 50,
 		"msg": {}
 	}`
@@ -78,8 +78,8 @@ func TestRegenInit(t *testing.T) {
 	}
 
 	goodSend := `{
-		"contract_address": "deadbeef",
-		"sender": "ethan",
+		"contract_address": "cosmos1qz58hjld64vqmynzk5xdesvkr9walfmrl5pefr",
+		"sender": "cosmos1qw4eww34ug66edg9mgsapgcgjuqcpyqxtcz6a5",
 		"sent_funds": 50,
 		"msg": {}
 	}`

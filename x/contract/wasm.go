@@ -77,6 +77,7 @@ func Run(cdc *amino.Codec, store sdk.KVStore, key []byte, code []byte, call stri
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())
 	}
+	fmt.Printf("From wasm: %s\n", res.(string))
 	out, err := ParseResponse(cdc, res.(string))
 	if err != nil {
 		return nil, sdk.ErrUnknownRequest(err.Error())

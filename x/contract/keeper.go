@@ -77,10 +77,10 @@ func (k Keeper) getNewContractId(ctx sdk.Context) sdk.AccAddress {
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
-	addr := make([]byte, binary.MaxVarintLen64+1)
+	addr := make([]byte, 32)
 	addr[0] = 'C'
-	n := binary.PutUvarint(addr[1:], id)
-	return addr[:n+1]
+	binary.PutUvarint(addr[1:], id)
+	return addr
 }
 
 type contractMsg struct {
@@ -168,8 +168,6 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest("can't find contract code").Result()
 	}
 
-	fmt.Println("foo")
-
 	// TODO: we really need to handle coins, not just one int
 	amt := coins[0].Amount.Int64()
 	cmsg := contractMsg{
@@ -183,14 +181,12 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest(stdErr.Error()).Result()
 	}
 
-	fmt.Println("bar")
+	fmt.Printf("contract: %s\n", contract)
 
 	res, err := Run(k.cdc, store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
 	if err != nil {
 		return err.Result()
 	}
-
-	fmt.Println("baz")
 
 	out := sdk.Result{}
 	for _, msg := range res.Msgs {
