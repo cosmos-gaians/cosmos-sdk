@@ -197,6 +197,8 @@ func (bldr TxBuilder) BuildSignMsg(msgs []sdk.Msg) (StdSignMsg, error) {
 		}
 	}
 
+	fmt.Printf("fee acct %s\n", bldr.feeAccount)
+
 	return StdSignMsg{
 		ChainID:       bldr.chainID,
 		AccountNumber: bldr.accountNumber,
@@ -204,6 +206,7 @@ func (bldr TxBuilder) BuildSignMsg(msgs []sdk.Msg) (StdSignMsg, error) {
 		Memo:          bldr.memo,
 		Msgs:          msgs,
 		Fee:           NewStdFee(bldr.gas, fees),
+		FeeAccount:    bldr.feeAccount,
 	}, nil
 }
 
@@ -272,7 +275,7 @@ func (bldr TxBuilder) SignStdTx(name, passphrase string, stdTx StdTx, appendSig 
 	return
 }
 
-func (bldr TxBuilder) WithFeeAccount(addr sdk.AccAddress) {
+func (bldr *TxBuilder) WithFeeAccount(addr sdk.AccAddress) {
 	bldr.feeAccount = addr
 }
 

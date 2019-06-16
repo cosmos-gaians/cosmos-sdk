@@ -86,10 +86,6 @@ func GetCmdCreateGroup(cdc *codec.Codec) *cobra.Command {
 
 			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 
-			if err := cliCtx.EnsureAccountExists(); err != nil {
-				return err
-			}
-
 			account := cliCtx.GetFromAddress()
 
 			info := Group{
