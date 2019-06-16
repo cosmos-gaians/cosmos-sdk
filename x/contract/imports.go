@@ -1,4 +1,4 @@
-package examples
+package contract
 
 /*
 Imports are exposed to all wasm functions
