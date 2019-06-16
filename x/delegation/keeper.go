@@ -76,28 +76,32 @@ func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	return grant.Capability
 }
 
-func (k Keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {
-	signers := msg.GetSigners()
-	if len(signers) != 1 {
-		return sdk.ErrUnknownRequest("can only dispatch a delegated msg with 1 signer").Result()
+func (k Keeper) DispatchActions(ctx sdk.Context, sender sdk.AccAddress, msgs []sdk.Msg) sdk.Result {
+	var res sdk.Result
+	for _, msg := range msgs {
+		signers := msg.GetSigners()
+		if len(signers) != 1 {
+			return sdk.ErrUnknownRequest("can only dispatch a delegated msg with 1 signer").Result()
+		}
+		actor := signers[0]
+		if !bytes.Equal(actor, sender) {
+			capability := k.GetCapability(ctx, sender, actor, msg)
+			if capability == nil {
+				return sdk.ErrUnauthorized("unauthorized").Result()
+			}
+			allow, updated, del := capability.Accept(msg, ctx.BlockHeader())
+			if !allow {
+				return sdk.ErrUnauthorized("unauthorized").Result()
+			}
+			if del {
+				k.Revoke(ctx, sender, actor, msg)
+			} else if updated != nil {
+				k.update(ctx, sender, actor, updated)
+			}
+		}
+		res = k.router.Route(msg.Route())(ctx, msg)
 	}
-	actor := signers[0]
-	if !bytes.Equal(actor, sender) {
-		capability := k.GetCapability(ctx, sender, actor, msg)
-		if capability == nil {
-			return sdk.ErrUnauthorized("unauthorized").Result()
-		}
-		allow, updated, del := capability.Accept(msg, ctx.BlockHeader())
-		if !allow {
-			return sdk.ErrUnauthorized("unauthorized").Result()
-		}
-		if del {
-			k.Revoke(ctx, sender, actor, msg)
-		} else if updated != nil {
-			k.update(ctx, sender, actor, updated)
-		}
-	}
-	return k.router.Route(msg.Route())(ctx, msg)
+	return res
 }
 
 func (k Keeper) DelegateFeeAllowance(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, allowance FeeAllowance) {

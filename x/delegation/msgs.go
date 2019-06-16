@@ -9,7 +9,7 @@ import (
 
 type MsgExecDelegatedAction struct {
 	Signer sdk.AccAddress `json:"signer"`
-	Msg    sdk.Msg        `json:"msg"`
+	Msgs   []sdk.Msg      `json:"msg"`
 }
 
 func (msg MsgExecDelegatedAction) Route() string {
@@ -98,9 +98,9 @@ func (msg MsgRevoke) GetSigners() []sdk.AccAddress {
 }
 
 type MsgDelegateFeeAllowance struct {
-	Granter sdk.AccAddress `json:"granter"`
-	Grantee sdk.AccAddress `json:"grantee"`
-	Allowance FeeAllowance `json:"allowance"`
+	Granter   sdk.AccAddress `json:"granter"`
+	Grantee   sdk.AccAddress `json:"grantee"`
+	Allowance FeeAllowance   `json:"allowance"`
 }
 
 func (msg MsgDelegateFeeAllowance) Route() string {
@@ -108,11 +108,11 @@ func (msg MsgDelegateFeeAllowance) Route() string {
 }
 
 func (msg MsgDelegateFeeAllowance) Type() string {
-    return "delegate-fee-allowance"
+	return "delegate-fee-allowance"
 }
 
 func (msg MsgDelegateFeeAllowance) ValidateBasic() sdk.Error {
-    return nil
+	return nil
 }
 
 func (msg MsgDelegateFeeAllowance) GetSignBytes() []byte {
@@ -124,7 +124,7 @@ func (msg MsgDelegateFeeAllowance) GetSignBytes() []byte {
 }
 
 func (msg MsgDelegateFeeAllowance) GetSigners() []sdk.AccAddress {
-    return []sdk.AccAddress{msg.Granter}
+	return []sdk.AccAddress{msg.Granter}
 }
 
 type MsgRevokeFeeAllowance struct {
@@ -155,4 +155,3 @@ func (msg MsgRevokeFeeAllowance) GetSignBytes() []byte {
 func (msg MsgRevokeFeeAllowance) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Granter}
 }
-

@@ -94,7 +94,13 @@ func (msg MsgCreateProposal) Route() string { return "proposal" }
 func (msg MsgCreateProposal) Type() string { return "proposal.create" }
 
 func (msg MsgCreateProposal) ValidateBasic() sdk.Error {
-	return msg.Action.ValidateBasic()
+	for _, m := range msg.Msgs {
+		err := m.ValidateBasic()
+		if err != nil {
+			return nil
+		}
+	}
+	return nil
 }
 
 func (msg MsgCreateProposal) GetSignBytes() []byte {
