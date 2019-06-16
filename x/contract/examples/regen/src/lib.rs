@@ -1,20 +1,71 @@
+extern crate failure;
 extern crate heapless;
 extern crate serde;
-extern crate serde_json_core;
+extern crate serde_json;
 
+use failure::Error;
 use serde::{Deserialize, Serialize};
-use serde_json_core::de::from_slice;
-use serde_json_core::ser::to_string;
+use serde_json::{from_slice, to_vec};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
 
-use heapless::consts::U1024;
-use heapless::String;
+mod contract;
+use contract::{init, send};
+
+#[derive(Serialize, Deserialize)]
+pub struct SendParams {
+    contract_address: Vec<u8>,
+    sender: Vec<u8>,
+    msg: Vec<u8>,
+    sent_funds: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RegenSendMsg {}
+
+#[derive(Serialize, Deserialize)]
+pub enum CosmosMsg {
+    SendTx {
+        from_address: Vec<u8>,
+        to_address: Vec<u8>,
+        amount: Vec<SendAmount>,
+    },
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SendAmount {
+    denom: String,
+    amount: String,
+}
+
+#[derive(Serialize, Deserialize)]
+enum ContractResult {
+    #[serde(rename = "msgs")]
+    Msgs(Vec<CosmosMsg>),
+    #[serde(rename = "error")]
+    Error(String),
+}
 
 extern "C" {
-    fn read() -> *mut c_char;
-    fn write(string: *mut c_char);
+    fn c_read() -> *mut c_char;
+    fn c_write(string: *mut c_char);
+}
+
+pub fn get_state() -> std::vec::Vec<u8> {
+    let state: std::vec::Vec<u8>;
+
+    unsafe {
+        state = CStr::from_ptr(c_read()).to_bytes().to_vec();
+    }
+
+    state
+}
+
+pub fn set_state(state: Vec<u8>) {
+    unsafe {
+        c_write(CString::new(state).unwrap().into_raw());
+    }
 }
 
 #[no_mangle]
@@ -34,115 +85,86 @@ pub extern "C" fn deallocate(pointer: *mut c_void, capacity: usize) {
 }
 
 #[derive(Serialize, Deserialize)]
-struct MsgCreateContract<'a> {
-    contract_address: &'a str,
-    sender: &'a str,
-    msg: RegenInitMsg<'a>,
+pub struct InitParams {
+    contract_address: Vec<u8>,
+    sender: Vec<u8>,
+    msg: Vec<u8>,
     sent_funds: u64,
 }
 
-#[derive(Serialize, Deserialize)]
-struct RegenInitMsg<'a> {
-    verifier: &'a str,
-    beneficiary: &'a str,
-}
-
-#[derive(Serialize, Deserialize)]
-struct RegenState<'a> {
-    verifier: &'a str,
-    beneficiary: &'a str,
-    payout: u64,
-}
-
-#[no_mangle]
-pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
-    let params: std::vec::Vec<u8>;
-    unsafe {
-        params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
-    }
-
-    let pres: serde_json_core::de::Result<MsgCreateContract> = from_slice(&params);
-    if pres.is_err() {
-        return CString::new(r#"{"error": "Could not parse MsgCreateContract json."}"#)
-            .unwrap()
-            .into_raw();
-    }
-    let params = pres.unwrap();
-
-    let state: String<U1024> = to_string(&RegenState {
-        verifier: params.msg.verifier,
-        beneficiary: params.msg.beneficiary,
-        payout: params.sent_funds,
-    })
-    .unwrap();
-
-    unsafe {
-        write(CString::new(state.as_bytes()).unwrap().into_raw());
-    }
-
-    CString::new(r#"{"msgs": []}"#).unwrap().into_raw()
-}
-
-#[derive(Serialize, Deserialize)]
-struct MsgSendContract<'a> {
-    contract_address: &'a str,
-    sender: &'a str,
-    msg: RegenSendMsg,
-    sent_funds: u64,
-}
-
-#[derive(Serialize, Deserialize)]
-struct RegenSendMsg {}
-
-#[no_mangle]
-pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
-    let params: std::vec::Vec<u8>;
-    let state: std::vec::Vec<u8>;
-
-    unsafe {
-        params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
-        state = CStr::from_ptr(read()).to_bytes().to_vec();
-    }
-
-    let pres: serde_json_core::de::Result<MsgSendContract> = from_slice(&params);
-    if pres.is_err() {
-        return CString::new(r#"{"error": "Could not parse MsgSendContract json."}"#)
-            .unwrap()
-            .into_raw();
-    }
-    let params = pres.unwrap();
-
-    let sres: serde_json_core::de::Result<RegenState> = from_slice(&state);
-    if sres.is_err() {
-        return CString::new(r#"{"error": "Could not parse RegenState json."}"#)
-            .unwrap()
-            .into_raw();
-    }
-    let state = sres.unwrap();
-
-    if params.sender == state.verifier {
-        CString::new(
-            r#"{"msgs":[
-            {
-                "type":"cosmos-sdk/MsgSend",
-                "value":{
-                    "from_address":"xrn:12677q7hjurt967k7ssrylvcnhl2xjcj0x85ycx",
-                    "to_address":"xrn:1e6tz5v50dnnapvqnjw9n3mnp8gs0tx0rrrjt5s",
-                    "amount":[
-                        {
-                            "denom":"tree",
-                            "amount":"1000"
-                        }
-                    ]
-                }
-            }
-        ]}"#,
-        )
+fn make_error_c_string<E: Into<Error>>(error: E) -> *mut c_char {
+    let error: Error = error.into();
+    CString::new(to_vec(&ContractResult::Error(error.to_string())).unwrap())
         .unwrap()
         .into_raw()
-    } else {
-        CString::new(r#"{"error": "Unauthorized"}"#)
-            .unwrap()
-            .into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn init_wrapper(params_ptr: *mut c_char) -> *mut c_char {
+    let params: std::vec::Vec<u8>;
+
+    unsafe {
+        params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
     }
+
+    // Catches and formats deserialization errors
+    let params: InitParams = match from_slice(&params) {
+        Ok(params) => params,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    // Catches and formats errors from the logic
+    let res = match init(params) {
+        Ok(msgs) => ContractResult::Msgs(msgs),
+        Err(e) => return make_error_c_string(e),
+    };
+
+    // Catches and formats serialization errors
+    let res = match to_vec(&res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    // Catches and formats CString errors
+    let res = match CString::new(res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    res.into_raw()
+}
+
+#[no_mangle]
+pub extern "C" fn send_wrapper(params_ptr: *mut c_char) -> *mut c_char {
+    let params: std::vec::Vec<u8>;
+
+    unsafe {
+        params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
+    }
+
+    // Catches and formats deserialization errors
+    let params: SendParams = match from_slice(&params) {
+        Ok(params) => params,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    // Catches and formats errors from the logic
+    let res = match send(params) {
+        Ok(msgs) => ContractResult::Msgs(msgs),
+        Err(e) => return make_error_c_string(e),
+    };
+
+    // Catches and formats serialization errors
+    let res = match to_vec(&res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    // Catches and formats CString errors
+    let res = match CString::new(res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    res.into_raw()
 }
