@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/cosmos/cosmos-sdk/client/context"
+	clientrest "github.com/cosmos/cosmos-sdk/client/rest"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 )
@@ -14,6 +15,54 @@ import (
 // RegisterRoutes registers staking-related REST handlers to a router
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	registerQueryRoutes(cliCtx, r)
+	registerTxRoutes(cliCtx, r)
+}
+
+func registerTxRoutes(cliCtx context.CLIContext, r *mux.Router) {
+	// Withdraw all delegator rewards
+	r.HandleFunc(
+		"/group/create",
+		createdGroupHandlerFn(cliCtx),
+	).Methods("POST")
+}
+
+type createGroupReq struct {
+	BaseReq rest.BaseReq `json:"base_req"`
+	Members []string     `json:"members"`
+}
+
+func createdGroupHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req createGroupReq
+
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		var members []Member
+		for _, memberStr := range req.Members {
+			memberAddr, _ := sdk.AccAddressFromBech32(memberStr)
+			member := Member{
+				Address: memberAddr,
+				Weight:  sdk.NewInt(10),
+			}
+			members = append(members, member)
+		}
+
+		signer := cliCtx.GetFromAddress()
+		info := Group{
+			Members:           members,
+			DecisionThreshold: sdk.NewInt(10),
+		}
+		msg := NewMsgCreateGroup(info, signer)
+
+		clientrest.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
+	}
 }
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
