@@ -33,7 +33,10 @@ pub fn init(params: InitParams) -> Result<Vec<CosmosMsg>, Error> {
 }
 
 pub fn send(params: SendParams) -> Result<Vec<CosmosMsg>, Error> {
-    let state: RegenState = from_slice(&get_state())?;
+    let mut state: RegenState = from_slice(&get_state())?;
+    let funds = state.payout + params.sent_funds;
+    state.payout = 0;
+    set_state(to_vec(&state)?);
 
     if params.sender == state.verifier {
         Ok(vec![CosmosMsg::SendTx {
@@ -41,7 +44,7 @@ pub fn send(params: SendParams) -> Result<Vec<CosmosMsg>, Error> {
             to_address: state.beneficiary,
             amount: vec![SendAmount {
                 denom: "tree".into(),
-                amount: state.payout.to_string(),
+                amount: funds.to_string(),
             }],
         }])
     } else {
