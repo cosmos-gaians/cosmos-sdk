@@ -26,16 +26,20 @@ func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, router sdk.Router) Keepe
 }
 
 func ActorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, msg sdk.Msg) []byte {
-	return []byte(fmt.Sprintf("c/%x/%x/%s/%s", grantee, granter, msg.Route(), msg.Type()))
+	return actorCapabilityKey(grantee, granter, msg.Route(), msg.Type())
+}
+
+func actorCapabilityKey(grantee sdk.AccAddress, granter sdk.AccAddress, route, typ string) []byte {
+	return []byte(fmt.Sprintf("c/%x/%x/%s/%s", grantee, granter, route, typ))
 }
 
 func FeeAllowanceKey(grantee sdk.AccAddress, granter sdk.AccAddress) []byte {
 	return []byte(fmt.Sprintf("f/%x/%x", grantee, granter))
 }
 
-func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
+// grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg
+func (k Keeper) getCapabilityGrant(ctx sdk.Context, actor []byte) (grant capabilityGrant, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	actor := ActorCapabilityKey(grantee, granter, msgType)
 	bz := store.Get(actor)
 	if bz == nil {
 		return grant, false
@@ -52,7 +56,7 @@ func (k Keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.Ac
 }
 
 func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
-	grant, found := k.getCapabilityGrant(ctx, grantee, granter, updated.MsgType())
+	grant, found := k.getCapabilityGrant(ctx, ActorCapabilityKey(grantee, granter, updated.MsgType()))
 	if !found {
 		return
 	}
@@ -65,7 +69,7 @@ func (k Keeper) Revoke(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 }
 
 func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) Capability {
-	grant, found := k.getCapabilityGrant(ctx, grantee, granter, msgType)
+	grant, found := k.getCapabilityGrant(ctx, ActorCapabilityKey(grantee, granter, msgType))
 	if !found {
 		return nil
 	}
