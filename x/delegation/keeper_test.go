@@ -134,3 +134,44 @@ func TestKeeperDelegation(t *testing.T) {
 	cap = input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
 	require.Nil(t, cap)
 }
+
+func TestKeeperFees(t *testing.T) {
+	input := setupTestInput()
+	ctx := input.ctx
+
+	addr, err := sdk.AccAddressFromBech32(sender)
+	require.NoError(t, err)
+	addr2, err := sdk.AccAddressFromBech32(recipient)
+	require.NoError(t, err)
+	input.bk.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("tree", 10000)))
+
+	require.True(t, input.bk.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 10000))))
+
+	cap := input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
+	require.Nil(t, cap)
+
+	now := ctx.BlockHeader().Time
+	require.NotNil(t, now)
+	smallCoin := sdk.NewCoins(sdk.NewInt64Coin("tree", 2))
+	someCoin := sdk.NewCoins(sdk.NewInt64Coin("tree", 123))
+	lotCoin := sdk.NewCoins(sdk.NewInt64Coin("tree", 4567))
+
+	// not allows
+	ok := input.dk.AllowDelegatedFees(ctx, addr2, addr, smallCoin)
+	require.False(t, ok)
+
+	// allow it
+	input.dk.DelegateFeeAllowance(ctx, addr2, addr, banktypes.FeeCapability{someCoin})
+
+	// okay under threshold
+	ok = input.dk.AllowDelegatedFees(ctx, addr2, addr, smallCoin)
+	require.True(t, ok)
+
+	// too high
+	ok = input.dk.AllowDelegatedFees(ctx, addr2, addr, lotCoin)
+	require.False(t, ok)
+
+	// wrong grantee
+	ok = input.dk.AllowDelegatedFees(ctx, addr2, addr2, smallCoin)
+	require.False(t, ok)
+}
