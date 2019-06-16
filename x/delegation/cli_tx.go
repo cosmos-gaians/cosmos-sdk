@@ -10,6 +10,43 @@ import (
 	"time"
 )
 
+func GetCmdExecDelefgated(cdc *codec.Codec) *cobra.Command {
+	var exec bool
+
+	cmd := &cobra.Command{
+		Use:   "exec [msg-json]",
+		Short: "execute a delegated action, with the message including its delegated signer in the encoded JSON",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
+
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			account := cliCtx.GetFromAddress()
+
+			var action sdk.Msg
+			err := cdc.UnmarshalJSON([]byte(args[1]), &action)
+			if err != nil {
+				return err
+			}
+
+			msg := MsgExecDelegatedAction{
+				Signer: account,
+				Msgs:     []sdk.Msg{action},
+			}
+			err = action.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			cliCtx.PrintResponse = true
+
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+	cmd.Flags().BoolVar(&exec, "exec", false, "try to execute the proposal immediately")
+	return cmd
+}
+
 func GetCmdDelegate(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delegate [grantee] [capability]",

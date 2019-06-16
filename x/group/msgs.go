@@ -89,9 +89,9 @@ func (msg MsgCreateGroup) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{msg.Signer}
 }
 
-func (msg MsgCreateProposal) Route() string { return "proposal" }
+func (msg MsgCreateProposal) Route() string { return "group" }
 
-func (msg MsgCreateProposal) Type() string { return "proposal.create" }
+func (msg MsgCreateProposal) Type() string { return "group.create" }
 
 func (msg MsgCreateProposal) ValidateBasic() sdk.Error {
 	for _, m := range msg.Msgs {

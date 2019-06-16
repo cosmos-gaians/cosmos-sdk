@@ -116,7 +116,7 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, feeDelegationHand
 		if len(feeAddr) != 0 {
 			// check if fees can be delegated
 			if feeDelegationHandler == nil {
-                return newCtx, errors.ErrUnknownRequest("delegated fees aren't supported"), true
+                return newCtx, sdk.ErrUnknownRequest("delegated fees aren't supported").Result(), true
 			}
 			if !feeDelegationHandler.AllowDelegatedFees(ctx, signerAddrs[0], feeAddr, stdTx.Fee.Amount) {
 				return newCtx, res, true

@@ -31,10 +31,9 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	groupTxCmd.AddCommand(client.PostCommands(
 		GetCmdApprove(cdc),
 		GetCmdCreateGroup(cdc),
-		// GetCmdPropose(cdc),
+		GetCmdPropose(cdc),
 		GetCmdTryExec(cdc),
 		GetCmdUnapprove(cdc),
-		// GetCmdUnjail(cdc),
 		GetCmdWithdraw(cdc),
 	)...)
 
@@ -111,48 +110,49 @@ func GetCmdCreateGroup(cdc *codec.Codec) *cobra.Command {
 	return cmd
 }
 
-type ActionCreator func(cmd *cobra.Command, args []string) (sdk.Msg, error)
+func GetCmdPropose(cdc *codec.Codec) *cobra.Command {
+	var exec bool
 
-//func GetCmdPropose(cdc *codec.Codec, actionCreator ActionCreator) *cobra.Command {
-//	var exec bool
-//
-//	cmd := &cobra.Command{
-//		RunE: func(cmd *cobra.Command, args []string) error {
-//			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
-//
-//			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-//
-//			if err := cliCtx.EnsureAccountExists(); err != nil {
-//				return err
-//			}
-//
-//			account := cliCtx.GetFromAddress()
-//
-//			action, err := actionCreator(cmd, args)
-//
-//			if err != nil {
-//				return err
-//			}
-//
-//			msg := MsgCreateProposal{
-//				Proposer: account,
-//				Group := group,
-//				Msgs:     []sdk.Msg{action},
-//				Exec:     exec,
-//			}
-//			err = msg.ValidateBasic()
-//			if err != nil {
-//				return err
-//			}
-//
-//			cliCtx.PrintResponse = true
-//
-//			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
-//		},
-//	}
-//	cmd.Flags().BoolVar(&exec, "exec", false, "try to execute the proposal immediately")
-//	return cmd
-//}
+	cmd := &cobra.Command{
+		Use:   "propose [group-id] [proposal-json]",
+		Short: "make a proposal, where proposal-json is any Msg encoded as json",
+		Args:  cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
+
+			txBldr := auth.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+			account := cliCtx.GetFromAddress()
+
+			group, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+
+			var proposal sdk.Msg
+			err = cdc.UnmarshalJSON([]byte(args[1]), &proposal)
+			if err != nil {
+				return err
+			}
+
+			msg := MsgCreateProposal{
+				Proposer: account,
+				Group:    group,
+				Msgs:     []sdk.Msg{proposal},
+				Exec:     exec,
+			}
+			err = msg.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			cliCtx.PrintResponse = true
+
+			return utils.CompleteAndBroadcastTxCLI(txBldr, cliCtx, []sdk.Msg{msg})
+		},
+	}
+	cmd.Flags().BoolVar(&exec, "exec", false, "try to execute the proposal immediately")
+	return cmd
+}
 
 func getRunVote(cdc *codec.Codec, approve bool) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {

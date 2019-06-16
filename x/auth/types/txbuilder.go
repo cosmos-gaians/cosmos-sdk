@@ -197,8 +197,6 @@ func (bldr TxBuilder) BuildSignMsg(msgs []sdk.Msg) (StdSignMsg, error) {
 		}
 	}
 
-	fmt.Printf("fee acct %s\n", bldr.feeAccount)
-
 	return StdSignMsg{
 		ChainID:       bldr.chainID,
 		AccountNumber: bldr.accountNumber,
