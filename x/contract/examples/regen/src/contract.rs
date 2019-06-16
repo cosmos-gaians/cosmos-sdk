@@ -15,6 +15,7 @@ struct RegenState {
     verifier: String,
     beneficiary: String,
     payout: u64,
+    funder: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -27,6 +28,7 @@ pub fn init(params: InitParams) -> Result<Vec<CosmosMsg>, Error> {
         verifier: msg.verifier,
         beneficiary: msg.beneficiary,
         payout: params.sent_funds,
+        funder: params.sender
     })?);
 
     Ok(Vec::new())

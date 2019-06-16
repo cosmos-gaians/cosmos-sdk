@@ -50,6 +50,10 @@ func KeyGroupIDByMemberAddress(addr sdk.AccAddress, id sdk.AccAddress) []byte {
 	return []byte(fmt.Sprintf("g/%x/%x", addr, id))
 }
 
+func KeyProposalsByGroupID(groupID sdk.AccAddress, proposalID ProposalID) []byte {
+	return []byte(fmt.Sprintf("p/%x/%x", groupID, proposalID))
+}
+
 func KeyProposal(id ProposalID) []byte {
 	return []byte(fmt.Sprintf("p/%x", id))
 }
@@ -81,7 +85,8 @@ func (keeper Keeper) GetGroups(ctx sdk.Context) []Group {
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var group Group
-		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &group)
+		// keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &group)
+		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(iter.Value(), &group)
 		groups = append(groups, group)
 	}
 
@@ -99,8 +104,7 @@ func (keeper Keeper) GetGroupsByMemberAddress(ctx sdk.Context, memberAddr sdk.Ac
 	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		var groupID sdk.AccAddress
-		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &groupID)
+		groupID := iter.Value()
 		group, err := keeper.GetGroupInfo(ctx, groupID)
 		if err != nil {
 			panic(err)
@@ -109,6 +113,22 @@ func (keeper Keeper) GetGroupsByMemberAddress(ctx sdk.Context, memberAddr sdk.Ac
 	}
 
 	return groups
+}
+
+func (keeper Keeper) GetProposalsByGroupID(ctx sdk.Context, groupID sdk.AccAddress) []Proposal {
+	prefix := fmt.Sprintf("p/%x/", groupID)
+	prefixBytes := []byte(prefix)
+	store := ctx.KVStore(keeper.storeKey)
+	var proposals []Proposal
+	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var proposal Proposal
+		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &proposal)
+		proposals = append(proposals, proposal)
+	}
+
+	return proposals
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
@@ -132,6 +152,7 @@ func (keeper Keeper) getNewGroupId(ctx sdk.Context) sdk.AccAddress {
 
 func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, sdk.Error) {
 	id := keeper.getNewGroupId(ctx)
+	info.ID = id
 	keeper.setGroupInfo(ctx, id, info)
 	acct := &GroupAccount{
 		BaseAccount: &auth.BaseAccount{
@@ -267,6 +288,7 @@ func (keeper Keeper) storeProposal(ctx sdk.Context, id ProposalID, proposal *Pro
 	}
 
 	store.Set(KeyProposal(id), bz)
+	store.Set(KeyProposalsByGroupID(proposal.Group, id), bz)
 }
 
 func (keeper Keeper) GetProposal(ctx sdk.Context, id ProposalID) (proposal *Proposal, err sdk.Error) {
