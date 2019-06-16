@@ -43,7 +43,7 @@ pub fn send(params: SendParams) -> Result<Vec<CosmosMsg>, Error> {
             from_address: params.contract_address,
             to_address: state.beneficiary,
             amount: vec![SendAmount {
-                denom: "tree".into(),
+                denom: "earth".into(),
                 amount: funds.to_string(),
             }],
         }])
