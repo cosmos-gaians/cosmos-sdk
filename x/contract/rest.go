@@ -22,23 +22,16 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 func contractStateHandlerFn(cliContext context.CLIContext) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		memberAddr := vars["addr"]
-		route := fmt.Sprintf("custom/%s/%s", "contract", "state")
+		addr := vars["addr"]
+		route := fmt.Sprintf("custom/%s/%s/%s", "contract", "state", addr)
 
-		decodedAddr, _ := sdk.AccAddressFromBech32(memberAddr)
-		params := QueryGroupsByMemberParams{
-			Address: decodedAddr,
-		}
 
-		bz, _ := cliCtx.Codec.MarshalJSON(params)
-		res, err := cliCtx.QueryWithData(route, bz)
+		res, err := cliContext.QueryWithData(route, nil)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliContext, res)
 	}
-
-	rest.PostProcessResponse(w, cliCtx, res)
 }
