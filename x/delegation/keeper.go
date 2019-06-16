@@ -16,9 +16,9 @@ type Keeper struct {
 }
 
 type capabilityGrant struct {
-	capability Capability
+	Capability Capability
 
-	expiration time.Time
+	Expiration time.Time
 }
 
 func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, router sdk.Router) Keeper {
@@ -43,13 +43,13 @@ func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, gran
 		return grant, false
 	}
 	k.cdc.MustUnmarshalBinaryBare(bz, &grant)
-	fmt.Printf("Got expiry %s\n", grant.expiration)
+	fmt.Printf("Got expiry %s (%d)\n", grant.Expiration, grant.Expiration.Unix())
 	return grant, true
 }
 
 func (k Keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time) {
 	store := ctx.KVStore(k.storeKey)
-	fmt.Printf("Set expiry %s\n", expiration)
+	fmt.Printf("Set expiry %s (%d)\n", expiration, expiration.Unix())
 	bz := k.cdc.MustMarshalBinaryBare(capabilityGrant{capability, expiration})
 	actor := ActorCapabilityKey(grantee, granter, capability.MsgType())
 	fmt.Printf("DelCap: %s\n", actor)
@@ -62,7 +62,7 @@ func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccA
 	if !found {
 		return
 	}
-	grant.capability = updated
+	grant.Capability = updated
 }
 
 func (k Keeper) Revoke(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) {
@@ -75,12 +75,12 @@ func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	if !found {
 		return nil
 	}
-	fmt.Printf("got %v\n", grant.expiration)
-	if !grant.expiration.IsZero() && grant.expiration.Before(ctx.BlockHeader().Time) {
+	fmt.Printf("got %v\n", grant.Expiration)
+	if !grant.Expiration.IsZero() && grant.Expiration.Before(ctx.BlockHeader().Time) {
 		k.Revoke(ctx, grantee, granter, msgType)
 		return nil
 	}
-	return grant.capability
+	return grant.Capability
 }
 
 func (k Keeper) DispatchAction(ctx sdk.Context, sender sdk.AccAddress, msg sdk.Msg) sdk.Result {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -80,7 +81,7 @@ const (
 	recipient = "cosmos1rjxwm0rwyuldsg00qf5lt26wxzzppjzxs2efdw"
 )
 
-func TestKeeperRegen(t *testing.T) {
+func TestKeeperDelegation(t *testing.T) {
 	input := setupTestInput()
 	ctx := input.ctx
 
@@ -111,10 +112,10 @@ func TestKeeperRegen(t *testing.T) {
 	require.NotNil(t, cap)
 	require.Equal(t, cap.MsgType(), bank.MsgSend{})
 	allow, _, _ := cap.Accept(bank.MsgSend{Amount: lotCoin}, ctx.BlockHeader())
-	require.False(t, allow)
+	assert.False(t, allow)
 	allow, _, del := cap.Accept(bank.MsgSend{Amount: someCoin}, ctx.BlockHeader())
-	require.True(t, allow)
-	require.True(t, del)
+	assert.True(t, allow)
+	assert.True(t, del)
 
 	// non-expired
 	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(time.Hour))

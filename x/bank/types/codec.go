@@ -8,6 +8,7 @@ import (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgSend{}, "cosmos-sdk/MsgSend", nil)
 	cdc.RegisterConcrete(MsgMultiSend{}, "cosmos-sdk/MsgMultiSend", nil)
+	cdc.RegisterConcrete(SendCapability{}, "cosmos-sdk/SendCapability", nil)
 }
 
 // module codec
