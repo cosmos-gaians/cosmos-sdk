@@ -1,6 +1,7 @@
 package group
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -196,8 +197,12 @@ func (cap CapabilityUpdateGroup) MsgType() sdk.Msg {
 func (cap CapabilityUpdateGroup) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegation.Capability, delete bool) {
 	switch msg := msg.(type) {
 	case MsgUpdateGroup:
-		fmt.Println(msg.Route())
-		return true, nil, false
+		for _, g := range cap.GroupIDs {
+			if bytes.Equal(g, msg.GroupID) {
+				return true, nil, false
+			}
+		}
+		return false, nil, false
 	default:
 		panic("Unexpected")
 	}
