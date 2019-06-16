@@ -27,7 +27,9 @@ pub struct SendParams<'a> {
 struct RegenSendMsg {}
 
 #[derive(Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
 pub enum CosmosMsg {
+    #[serde(rename = "cosmos-sdk/MsgSend")]
     SendTx {
         from_address: String,
         to_address: String,
