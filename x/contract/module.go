@@ -27,7 +27,8 @@ const StoreKey = ModuleName
 // ----------------------------------------------------------------------------
 type AppModuleBasic struct{}
 
-func (am AppModuleBasic) RegisterRESTRoutes(context.CLIContext, *mux.Router) {
+func (am AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, r *mux.Router) {
+	RegisterRoutes(ctx, r)
 }
 
 func (am AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
