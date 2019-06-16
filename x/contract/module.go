@@ -35,7 +35,7 @@ func (am AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 }
 
 func (am AppModuleBasic) GetQueryCmd(*codec.Codec) *cobra.Command {
-    return nil
+	return nil
 }
 
 var _ module.AppModuleBasic = AppModuleBasic{}
@@ -83,9 +83,9 @@ func NewAppModule(keeper Keeper) AppModule {
 func (am AppModule) RegisterRESTRoutes(context.CLIContext, *mux.Router) {
 }
 
-func (am AppModule) GetTxCmd(*codec.Codec) *cobra.Command {
-	return nil
-}
+// func (am AppModule) GetTxCmd(*codec.Codec) *cobra.Command {
+// 	return nil
+// }
 
 func (am AppModule) GetQueryCmd(*codec.Codec) *cobra.Command {
 	return nil
