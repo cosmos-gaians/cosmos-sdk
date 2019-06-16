@@ -107,6 +107,10 @@ type MsgDelegateFeeAllowance struct {
 	Allowance FeeAllowance   `json:"allowance"`
 }
 
+func NewMsgDelegateFeeAllowance(granter sdk.AccAddress, grantee sdk.AccAddress, allowance FeeAllowance) MsgDelegateFeeAllowance {
+	return MsgDelegateFeeAllowance{Granter: granter, Grantee: grantee, Allowance: allowance}
+}
+
 func (msg MsgDelegateFeeAllowance) Route() string {
 	return "delegation"
 }

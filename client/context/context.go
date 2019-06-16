@@ -52,6 +52,7 @@ type CLIContext struct {
 	Simulate       bool
 	GenerateOnly   bool
 	FromAddress    sdk.AccAddress
+	SendAsAddress  sdk.AccAddress
 	FromName       string
 	Indent         bool
 	SkipConfirm    bool
@@ -109,7 +110,9 @@ func NewCLIContextWithFrom(from string) CLIContext {
 
 // NewCLIContext returns a new initialized CLIContext with parameters from the
 // command line using Viper.
-func NewCLIContext() CLIContext { return NewCLIContextWithFrom(viper.GetString(flags.FlagFrom)) }
+func NewCLIContext() CLIContext {
+	return NewCLIContextWithFrom(viper.GetString(flags.FlagFrom))
+}
 
 func createVerifier() tmlite.Verifier {
 	trustNodeDefined := viper.IsSet(flags.FlagTrustNode)

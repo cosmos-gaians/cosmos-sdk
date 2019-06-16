@@ -182,3 +182,8 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 	out := k.delegationKeeper.DispatchActions(ctx, contract, res.Msgs)
 	return out
 }
+
+func (k Keeper) GetContractState(ctx sdk.Context, contract sdk.AccAddress) []byte {
+	store := ctx.KVStore(k.storeKey)
+	return store.Get(KeyContractState(contract))
+}

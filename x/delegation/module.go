@@ -68,6 +68,7 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 
 	txCmd.AddCommand(client.PostCommands(
 		GetCmdDelegate(cdc),
+		GetCmdDelegateFees(cdc),
 	)...)
 
 	return txCmd

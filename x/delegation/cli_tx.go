@@ -72,13 +72,13 @@ func GetCmdDelegateFees(cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var capability Capability
-			err = cdc.UnmarshalJSON([]byte(args[1]), &capability)
+			var allowance FeeAllowance
+			err = cdc.UnmarshalJSON([]byte(args[1]), &allowance)
 			if err != nil {
 				return err
 			}
 
-			msg := NewMsgDelegate(account, grantee, capability, time.Time{})
+			msg := NewMsgDelegateFeeAllowance(account, grantee, allowance)
 
 			cliCtx.PrintResponse = true
 
