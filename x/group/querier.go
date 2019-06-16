@@ -1,6 +1,8 @@
 package group
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -65,14 +67,15 @@ func queryGroups(ctx sdk.Context, path []string, req abci.RequestQuery, keeper K
 }
 
 func queryGroupsByMemberAddress(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
-	addressStr := path[0]
-	// req.Data
-	decodedAddress, e := sdk.AccAddressFromBech32(addressStr)
-	if e != nil {
-		return []byte{}, sdk.ErrUnknownRequest("could not decode member address")
+
+	var params QueryGroupsByMemberParams
+	parseErr := moduleCodec.UnmarshalJSON(req.Data, &params)
+	if parseErr != nil {
+		err = sdk.ErrUnknownRequest(fmt.Sprintf("Incorrectly formatted request data - %s", parseErr.Error()))
+		return
 	}
 
-	groups := keeper.GetGroupsByMemberAddress(ctx, decodedAddress)
+	groups := keeper.GetGroupsByMemberAddress(ctx, params.Address)
 
 	res, jsonErr := codec.MarshalJSONIndent(keeper.cdc, groups)
 	if jsonErr != nil {
