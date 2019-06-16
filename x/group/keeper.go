@@ -152,6 +152,7 @@ func (keeper Keeper) getNewGroupId(ctx sdk.Context) sdk.AccAddress {
 
 func (keeper Keeper) CreateGroup(ctx sdk.Context, info Group) (sdk.AccAddress, sdk.Error) {
 	id := keeper.getNewGroupId(ctx)
+	info.ID = id
 	keeper.setGroupInfo(ctx, id, info)
 	acct := &GroupAccount{
 		BaseAccount: &auth.BaseAccount{

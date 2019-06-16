@@ -16,6 +16,7 @@ const (
 // It could be used to group individuals into a group or several groups/users into a larger group.
 // It could be used by a single user to manage multiple devices and setup a multisig policy.
 type Group struct {
+	ID sdk.AccAddress
 	// The members of the group and their associated weight
 	Members []Member `json:"members,omitempty"`
 	// Specifies the number of votes that must be accumulated in order for a decision to be made by the group.
