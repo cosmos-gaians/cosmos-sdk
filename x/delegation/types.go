@@ -7,6 +7,7 @@ import (
 
 // Defines delegation module constants
 const (
+	StoreKey     = ModuleName
 	RouterKey    = ModuleName
 	QuerierRoute = ModuleName
 )
@@ -26,4 +27,3 @@ type FeeAllowance interface {
 	// and optionally updates the allowance or deletes it entirely
 	Accept(fee sdk.Coins, block abci.Header) (allow bool, updated FeeAllowance, delete bool)
 }
-
