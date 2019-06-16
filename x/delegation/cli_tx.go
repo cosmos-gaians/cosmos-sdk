@@ -24,7 +24,7 @@ func GetCmdExecDelefgated(cdc *codec.Codec) *cobra.Command {
 			account := cliCtx.GetFromAddress()
 
 			var action sdk.Msg
-			err := cdc.UnmarshalJSON([]byte(args[1]), &action)
+			err := cdc.UnmarshalJSON([]byte(args[0]), &action)
 			if err != nil {
 				return err
 			}
