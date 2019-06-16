@@ -36,24 +36,18 @@ func FeeAllowanceKey(grantee sdk.AccAddress, granter sdk.AccAddress) []byte {
 func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
 	store := ctx.KVStore(k.storeKey)
 	actor := ActorCapabilityKey(grantee, granter, msgType)
-	fmt.Printf("getCap: %s\n", actor)
 	bz := store.Get(actor)
-	fmt.Printf("  %X\n", bz)
 	if bz == nil {
 		return grant, false
 	}
 	k.cdc.MustUnmarshalBinaryBare(bz, &grant)
-	fmt.Printf("Got expiry %s (%d)\n", grant.Expiration, grant.Expiration.Unix())
 	return grant, true
 }
 
 func (k Keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time) {
 	store := ctx.KVStore(k.storeKey)
-	fmt.Printf("Set expiry %s (%d)\n", expiration, expiration.Unix())
 	bz := k.cdc.MustMarshalBinaryBare(capabilityGrant{capability, expiration})
 	actor := ActorCapabilityKey(grantee, granter, capability.MsgType())
-	fmt.Printf("DelCap: %s\n", actor)
-	fmt.Printf("  %X\n", bz)
 	store.Set(actor, bz)
 }
 
@@ -75,7 +69,6 @@ func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	if !found {
 		return nil
 	}
-	fmt.Printf("got %v\n", grant.Expiration)
 	if !grant.Expiration.IsZero() && grant.Expiration.Before(ctx.BlockHeader().Time) {
 		k.Revoke(ctx, grantee, granter, msgType)
 		return nil

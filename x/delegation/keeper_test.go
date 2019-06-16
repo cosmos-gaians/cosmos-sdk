@@ -117,9 +117,11 @@ func TestKeeperDelegation(t *testing.T) {
 	assert.True(t, allow)
 	assert.True(t, del)
 
-	// non-expired
-	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(time.Hour))
-	cap = input.dk.GetCapability(ctx, addr, addr2, bank.MsgMultiSend{})
-	require.NotNil(t, cap)
+	// wrong message type
+	cap = input.dk.GetCapability(ctx, addr2, addr, bank.MsgMultiSend{})
+	require.Nil(t, cap)
+	// wrong grantee
+	cap = input.dk.GetCapability(ctx, addr, addr2, bank.MsgSend{})
+	require.Nil(t, cap)
 
 }

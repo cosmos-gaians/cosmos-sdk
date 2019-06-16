@@ -74,14 +74,14 @@ type SendCapability struct {
 var _ delegation.Capability = SendCapability{}
 
 func (cap SendCapability) MsgType() sdk.Msg {
-    return MsgSend{}
+	return MsgSend{}
 }
 
 func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegation.Capability, delete bool) {
 	switch msg := msg.(type) {
 	case MsgSend:
-		left, valid := cap.SpendLimit.SafeSub(msg.Amount)
-		if !valid {
+		left, invalid := cap.SpendLimit.SafeSub(msg.Amount)
+		if invalid {
 			return false, nil, false
 		}
 		if left.IsZero() {
