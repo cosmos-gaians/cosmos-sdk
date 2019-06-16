@@ -81,7 +81,8 @@ func (keeper Keeper) GetGroups(ctx sdk.Context) []Group {
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var group Group
-		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &group)
+		// keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &group)
+		keeper.cdc.MustUnmarshalBinaryLengthPrefixed(iter.Value(), &group)
 		groups = append(groups, group)
 	}
 
