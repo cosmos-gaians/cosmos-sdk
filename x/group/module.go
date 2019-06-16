@@ -22,6 +22,7 @@ var (
 
 // ModuleName is the name of this module
 const ModuleName = "group"
+const StoreKey = ModuleName
 
 // AppModuleBasic defines the internal data for the module
 // ----------------------------------------------------------------------------

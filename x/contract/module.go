@@ -19,6 +19,7 @@ var (
 
 // ModuleName is the name of this module
 const ModuleName = "contract"
+const StoreKey = ModuleName
 
 // AppModuleBasic defines the internal data for the module
 // ----------------------------------------------------------------------------
@@ -68,6 +69,14 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 type AppModule struct {
 	AppModuleBasic
 	keeper Keeper
+}
+
+// NewAppModule creates a new app module
+func NewAppModule(keeper Keeper) AppModule {
+	return AppModule{
+		AppModuleBasic: AppModuleBasic{},
+		keeper:         keeper,
+	}
 }
 
 func (am AppModule) RegisterRESTRoutes(context.CLIContext, *mux.Router) {

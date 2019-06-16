@@ -20,6 +20,7 @@ var (
 
 // ModuleName is the name of this module
 const ModuleName = "delegation"
+const StoreKey = ModuleName
 
 // AppModuleBasic defines the internal data for the module
 // ----------------------------------------------------------------------------

@@ -100,6 +100,9 @@ func (k Keeper) DispatchActions(ctx sdk.Context, sender sdk.AccAddress, msgs []s
 			}
 		}
 		res = k.router.Route(msg.Route())(ctx, msg)
+		if !res.IsOK() {
+			return res
+		}
 	}
 	return res
 }

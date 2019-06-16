@@ -138,14 +138,7 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 		return nil, err.Result()
 	}
 
-	out := sdk.Result{}
-	for _, msg := range res.Msgs {
-		out = k.delegationKeeper.DispatchAction(ctx, addr, msg)
-		if !out.IsOK() {
-			return nil, out
-		}
-	}
-
+	out := k.delegationKeeper.DispatchActions(ctx, addr, res.Msgs)
 	return addr, out
 }
 
@@ -186,13 +179,6 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return err.Result()
 	}
 
-	out := sdk.Result{}
-	for _, msg := range res.Msgs {
-		fmt.Printf("msg: %#v\n", msg)
-		out = k.delegationKeeper.DispatchAction(ctx, contract, msg)
-		if !out.IsOK() {
-			return out
-		}
-	}
+	out := k.delegationKeeper.DispatchActions(ctx, contract, res.Msgs)
 	return out
 }
