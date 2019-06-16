@@ -3,15 +3,16 @@ package delegation
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"time"
 )
 
 type Keeper struct {
 	storeKey sdk.StoreKey
 	cdc      *codec.Codec
-	router sdk.Router
+	router   sdk.Router
 }
 
 type capabilityGrant struct {
@@ -34,18 +35,26 @@ func FeeAllowanceKey(grantee sdk.AccAddress, granter sdk.AccAddress) []byte {
 
 func (k Keeper) getCapabilityGrant(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, msgType sdk.Msg) (grant capabilityGrant, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(ActorCapabilityKey(grantee, granter, msgType))
+	actor := ActorCapabilityKey(grantee, granter, msgType)
+	fmt.Printf("getCap: %s\n", actor)
+	bz := store.Get(actor)
+	fmt.Printf("  %X\n", bz)
 	if bz == nil {
 		return grant, false
 	}
 	k.cdc.MustUnmarshalBinaryBare(bz, &grant)
+	fmt.Printf("Got expiry %s\n", grant.expiration)
 	return grant, true
 }
 
 func (k Keeper) Delegate(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, capability Capability, expiration time.Time) {
 	store := ctx.KVStore(k.storeKey)
+	fmt.Printf("Set expiry %s\n", expiration)
 	bz := k.cdc.MustMarshalBinaryBare(capabilityGrant{capability, expiration})
-	store.Set(ActorCapabilityKey(grantee, granter, capability.MsgType()), bz)
+	actor := ActorCapabilityKey(grantee, granter, capability.MsgType())
+	fmt.Printf("DelCap: %s\n", actor)
+	fmt.Printf("  %X\n", bz)
+	store.Set(actor, bz)
 }
 
 func (k Keeper) update(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, updated Capability) {
@@ -66,6 +75,7 @@ func (k Keeper) GetCapability(ctx sdk.Context, grantee sdk.AccAddress, granter s
 	if !found {
 		return nil
 	}
+	fmt.Printf("got %v\n", grant.expiration)
 	if !grant.expiration.IsZero() && grant.expiration.Before(ctx.BlockHeader().Time) {
 		k.Revoke(ctx, grantee, granter, msgType)
 		return nil

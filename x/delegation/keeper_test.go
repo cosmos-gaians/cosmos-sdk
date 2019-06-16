@@ -2,6 +2,7 @@ package delegation_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func setupTestInput() testInput {
 	ak := auth.NewAccountKeeper(
 		cdc, authCapKey, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount,
 	)
-	ctx := sdk.NewContext(ms, abci.Header{ChainID: "test-chain-id"}, false, log.NewNopLogger())
+	ctx := sdk.NewContext(ms, abci.Header{ChainID: "test-chain-id", Time: time.Now().UTC()}, false, log.NewNopLogger())
 
 	bk := bank.NewBaseKeeper(ak, pk.Subspace(banktypes.DefaultParamspace), banktypes.DefaultCodespace)
 	bk.SetSendEnabled(ctx, true)
@@ -85,9 +86,39 @@ func TestKeeperRegen(t *testing.T) {
 
 	addr, err := sdk.AccAddressFromBech32(sender)
 	require.NoError(t, err)
-	// addr2, err := sdk.AccAddressFromBech32(recipient)
-	// require.NoError(t, err)
+	addr2, err := sdk.AccAddressFromBech32(recipient)
+	require.NoError(t, err)
 	input.bk.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("tree", 10000)))
 
 	require.True(t, input.bk.GetCoins(ctx, addr).IsEqual(sdk.NewCoins(sdk.NewInt64Coin("tree", 10000))))
+
+	cap := input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
+	require.Nil(t, cap)
+
+	now := ctx.BlockHeader().Time
+	require.NotNil(t, now)
+	someCoin := sdk.NewCoins(sdk.NewInt64Coin("tree", 123))
+	lotCoin := sdk.NewCoins(sdk.NewInt64Coin("tree", 4567))
+
+	// expired
+	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(-1*time.Hour))
+	cap = input.dk.GetCapability(ctx, addr, addr2, bank.MsgSend{})
+	require.Nil(t, cap)
+
+	// non-expired
+	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(time.Hour))
+	cap = input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
+	require.NotNil(t, cap)
+	require.Equal(t, cap.MsgType(), bank.MsgSend{})
+	allow, _, _ := cap.Accept(bank.MsgSend{Amount: lotCoin}, ctx.BlockHeader())
+	require.False(t, allow)
+	allow, _, del := cap.Accept(bank.MsgSend{Amount: someCoin}, ctx.BlockHeader())
+	require.True(t, allow)
+	require.True(t, del)
+
+	// non-expired
+	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(time.Hour))
+	cap = input.dk.GetCapability(ctx, addr, addr2, bank.MsgMultiSend{})
+	require.NotNil(t, cap)
+
 }
