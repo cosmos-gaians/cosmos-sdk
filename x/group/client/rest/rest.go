@@ -26,6 +26,8 @@ func memberGroupsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		route := fmt.Sprintf("custom/%s/%s", "group", "groups_by_member")
 
+		fmt.Println("IN HERE YO..........")
+
 		res, err := cliCtx.QueryWithData(route, nil)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())

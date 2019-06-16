@@ -3,25 +3,26 @@ package group
 import (
 	"fmt"
 
+	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/spf13/cobra"
 )
 
-// // GetQueryCmd returns the cli query commands for this module
-// func (mc ModuleClient) GetQueryCmd() *cobra.Command {
-// 	agentQueryCmd := &cobra.Command{
-// 		Use:   "group",
-// 		Short: "Querying commands for the group module",
-// 	}
+// GetQueryCmd returns the cli query commands for this module
+func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	agentQueryCmd := &cobra.Command{
+		Use:   "group",
+		Short: "Querying commands for the group module",
+	}
 
-// 	agentQueryCmd.AddCommand(client.GetCommands(
-// 		agentcmd.GetCmdGetGroup(mc.storeKey, mc.cdc),
-// 		agentcmd.GetCmdGetProposal(mc.storeKey, mc.cdc),
-// 	)...)
+	agentQueryCmd.AddCommand(client.GetCommands(
+		GetCmdGetGroup(queryRoute, cdc),
+		GetCmdGetProposal(queryRoute, cdc),
+	)...)
 
-// 	return agentQueryCmd
-// }
+	return agentQueryCmd
+}
 
 // GetCmdGroup queries information about an group
 func GetCmdGetGroup(queryRoute string, cdc *codec.Codec) *cobra.Command {
