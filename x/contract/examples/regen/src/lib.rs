@@ -5,6 +5,7 @@ extern crate serde_json;
 
 use failure::Error;
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 use serde_json::{from_slice, to_vec};
 use std::ffi::{CStr, CString};
 use std::mem;
@@ -14,10 +15,11 @@ mod contract;
 use contract::{init, send};
 
 #[derive(Serialize, Deserialize)]
-pub struct SendParams {
-    contract_address: Vec<u8>,
-    sender: Vec<u8>,
-    msg: Vec<u8>,
+pub struct SendParams<'a> {
+    contract_address: String,
+    sender: String,
+    #[serde(borrow)]
+    msg: &'a RawValue,
     sent_funds: u64,
 }
 
@@ -27,8 +29,8 @@ struct RegenSendMsg {}
 #[derive(Serialize, Deserialize)]
 pub enum CosmosMsg {
     SendTx {
-        from_address: Vec<u8>,
-        to_address: Vec<u8>,
+        from_address: String,
+        to_address: String,
         amount: Vec<SendAmount>,
     },
 }
@@ -85,10 +87,11 @@ pub extern "C" fn deallocate(pointer: *mut c_void, capacity: usize) {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct InitParams {
-    contract_address: Vec<u8>,
-    sender: Vec<u8>,
-    msg: Vec<u8>,
+pub struct InitParams<'a> {
+    contract_address: String,
+    sender: String,
+    #[serde(borrow)]
+    msg: &'a RawValue,
     sent_funds: u64,
 }
 

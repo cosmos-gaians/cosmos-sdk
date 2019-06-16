@@ -2,18 +2,18 @@ use crate::{get_state, set_state, CosmosMsg, InitParams, SendAmount, SendParams}
 
 use failure::{bail, Error};
 use serde::{Deserialize, Serialize};
-use serde_json::{from_slice, to_vec};
+use serde_json::{from_slice, from_str, to_vec};
 
 #[derive(Serialize, Deserialize)]
 struct RegenInitMsg {
-    verifier: Vec<u8>,
-    beneficiary: Vec<u8>,
+    verifier: String,
+    beneficiary: String,
 }
 
 #[derive(Serialize, Deserialize)]
 struct RegenState {
-    verifier: Vec<u8>,
-    beneficiary: Vec<u8>,
+    verifier: String,
+    beneficiary: String,
     payout: u64,
 }
 
@@ -21,7 +21,7 @@ struct RegenState {
 struct RegenSendMsg {}
 
 pub fn init(params: InitParams) -> Result<Vec<CosmosMsg>, Error> {
-    let msg: RegenInitMsg = from_slice(&params.msg)?;
+    let msg: RegenInitMsg = from_str(params.msg.get())?;
 
     set_state(to_vec(&RegenState {
         verifier: msg.verifier,
