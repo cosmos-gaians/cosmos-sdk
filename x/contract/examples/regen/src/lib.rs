@@ -127,21 +127,23 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
     if params.sender == state.verifier {
         // format how much money to produce
         let funds = state.payout + params.sent_funds;
-        // let mut amount = [0u8; 20];
-        // funds.numtoa_str(10, &mut amount);
+
+        // TODO: clean this up...
+        // I make enough space for numtoa, but need to manually trim off leading spaces
+        let mut amount = b"          ".to_vec();
+        funds.numtoa_str(10, &mut amount);
+        let mut n = 0;
+        while amount[n] == b' ' {
+            n+=1;
+        }
+        amount = amount[n..].to_vec();
 
         state.payout = 0;
         let state_str: String<U1024> = to_string(&state).unwrap();
         unsafe {
             write(CString::new(state_str.as_bytes()).unwrap().into_raw());
         }
-
-        // let mut output = br#"{"msgs":[
-        //     {
-        //         "type":"cosmos-sdk/MsgSend",
-        //         "value":{
-        //             "from_address":""#.to_vec();
-        // output.extend(state.verifier.to_vec())
+        // return CString::new(amount).unwrap().into_raw();
 
         let mut output = br#"{"msgs":[
             {
@@ -158,7 +160,7 @@ pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
                             "denom":"tree",
                             "amount":""#.to_vec();
         // amount
-        let amount = b"500".to_vec();
+        // let amount = b"500".to_vec();
         let outd = br#""  
                         }
                     ]
