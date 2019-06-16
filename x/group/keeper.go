@@ -100,8 +100,7 @@ func (keeper Keeper) GetGroupsByMemberAddress(ctx sdk.Context, memberAddr sdk.Ac
 	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-		var groupID sdk.AccAddress
-		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &groupID)
+		groupID := iter.Value()
 		group, err := keeper.GetGroupInfo(ctx, groupID)
 		if err != nil {
 			panic(err)
