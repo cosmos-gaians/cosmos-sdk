@@ -10,12 +10,17 @@ import (
 
 // query endpoints supported by the governance Querier
 const (
-	QueryGet            = "get"
-	QueryGroups         = "groups"
-	QueryGroupsByMember = "groups_by_member"
+	QueryGet                = "get"
+	QueryGroups             = "groups"
+	QueryGroupsByMember     = "groups_by_member"
+	QueryProposalsByGroupID = "proposals_by_group_id"
 )
 
 type QueryGroupsByMemberParams struct {
+	Address sdk.AccAddress
+}
+
+type QueryProposalsByGroupIDrParams struct {
 	Address sdk.AccAddress
 }
 
@@ -28,6 +33,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryGroups(ctx, path[1:], req, keeper)
 		case QueryGroupsByMember:
 			return queryGroupsByMemberAddress(ctx, path[1:], req, keeper)
+		case QueryProposalsByGroupID:
+			return queryProposalsByGroupID(ctx, path[1:], req, keeper)
 		default:
 			return nil, sdk.ErrUnknownRequest("unknown data query endpoint")
 		}
@@ -78,6 +85,24 @@ func queryGroupsByMemberAddress(ctx sdk.Context, path []string, req abci.Request
 	groups := keeper.GetGroupsByMemberAddress(ctx, params.Address)
 
 	res, jsonErr := codec.MarshalJSONIndent(keeper.cdc, groups)
+	if jsonErr != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", jsonErr.Error()))
+	}
+	return res, nil
+}
+
+func queryProposalsByGroupID(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
+
+	var params QueryProposalsByGroupIDrParams
+	parseErr := moduleCodec.UnmarshalJSON(req.Data, &params)
+	if parseErr != nil {
+		err = sdk.ErrUnknownRequest(fmt.Sprintf("Incorrectly formatted request data - %s", parseErr.Error()))
+		return
+	}
+
+	proposals := keeper.GetProposalsByGroupID(ctx, params.Address)
+
+	res, jsonErr := codec.MarshalJSONIndent(keeper.cdc, proposals)
 	if jsonErr != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", jsonErr.Error()))
 	}

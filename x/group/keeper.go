@@ -50,6 +50,10 @@ func KeyGroupIDByMemberAddress(addr sdk.AccAddress, id sdk.AccAddress) []byte {
 	return []byte(fmt.Sprintf("g/%x/%x", addr, id))
 }
 
+func KeyProposalsByGroupID(groupID sdk.AccAddress, proposalID ProposalID) []byte {
+	return []byte(fmt.Sprintf("p/%x/%x", groupID, proposalID))
+}
+
 func KeyProposal(id ProposalID) []byte {
 	return []byte(fmt.Sprintf("p/%x", id))
 }
@@ -109,6 +113,22 @@ func (keeper Keeper) GetGroupsByMemberAddress(ctx sdk.Context, memberAddr sdk.Ac
 	}
 
 	return groups
+}
+
+func (keeper Keeper) GetProposalsByGroupID(ctx sdk.Context, groupID sdk.AccAddress) []Proposal {
+	prefix := fmt.Sprintf("p/%x/", groupID)
+	prefixBytes := []byte(prefix)
+	store := ctx.KVStore(keeper.storeKey)
+	var proposals []Proposal
+	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var proposal Proposal
+		keeper.cdc.MustUnmarshalBinaryBare(iter.Value(), &proposal)
+		proposals = append(proposals, proposal)
+	}
+
+	return proposals
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
@@ -267,6 +287,7 @@ func (keeper Keeper) storeProposal(ctx sdk.Context, id ProposalID, proposal *Pro
 	}
 
 	store.Set(KeyProposal(id), bz)
+	store.Set(KeyProposalsByGroupID(proposal.Group, id), bz)
 }
 
 func (keeper Keeper) GetProposal(ctx sdk.Context, id ProposalID) (proposal *Proposal, err sdk.Error) {
