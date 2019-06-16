@@ -26,15 +26,15 @@ const StoreKey = ModuleName
 type AppModuleBasic struct{}
 
 func (am AppModuleBasic) RegisterRESTRoutes(context.CLIContext, *mux.Router) {
-	panic("implement me")
+
 }
 
 func (am AppModuleBasic) GetTxCmd(*codec.Codec) *cobra.Command {
-	panic("implement me")
+    return nil
 }
 
 func (am AppModuleBasic) GetQueryCmd(*codec.Codec) *cobra.Command {
-	panic("implement me")
+    return nil
 }
 
 var _ module.AppModuleBasic = AppModuleBasic{}

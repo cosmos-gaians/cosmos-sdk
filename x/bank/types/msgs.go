@@ -2,8 +2,6 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/delegation"
-	abci "github.com/tendermint/tendermint/abci/types"
 )
 
 // RouterKey is they name of the bank module
@@ -58,58 +56,6 @@ func (msg MsgSend) GetSigners() []sdk.AccAddress {
 
 func (msg MsgSend) Actor() sdk.AccAddress {
 	return msg.FromAddress
-}
-
-func (msg MsgSend) RequiredCapabilities() []delegation.Capability {
-	return []delegation.Capability{SendCapability{SpendLimit: msg.Amount}}
-}
-
-type SendCapability struct {
-	// SpendLimit specifies the maximum amount of tokens that can be spent
-	// by this capability and will be updated as tokens are spent. If it is
-	// empty, there is no spend limit and any amount of coins can be spent.
-	SpendLimit sdk.Coins
-}
-
-var _ delegation.Capability = SendCapability{}
-
-func (cap SendCapability) MsgType() sdk.Msg {
-	return MsgSend{}
-}
-
-func (cap SendCapability) Accept(msg sdk.Msg, block abci.Header) (allow bool, updated delegation.Capability, delete bool) {
-	switch msg := msg.(type) {
-	case MsgSend:
-		left, invalid := cap.SpendLimit.SafeSub(msg.Amount)
-		if invalid {
-			return false, nil, false
-		}
-		if left.IsZero() {
-			return true, nil, true
-		}
-		return true, SendCapability{SpendLimit: left}, false
-	}
-	return false, nil, false
-}
-
-type FeeCapability struct {
-	// SpendLimit specifies the maximum amount of tokens that can be spent
-	// by this capability and will be updated as tokens are spent. If it is
-	// empty, there is no spend limit and any amount of coins can be spent.
-	SpendLimit sdk.Coins
-}
-
-var _ delegation.FeeAllowance = FeeCapability{}
-
-func (cap FeeCapability) Accept(fee sdk.Coins, block abci.Header) (allow bool, updated delegation.FeeAllowance, delete bool) {
-	left, invalid := cap.SpendLimit.SafeSub(fee)
-	if invalid {
-		return false, nil, false
-	}
-	if left.IsZero() {
-		return true, nil, true
-	}
-	return true, FeeCapability{SpendLimit: left}, false
 }
 
 // MsgMultiSend - high level transaction of the coin module

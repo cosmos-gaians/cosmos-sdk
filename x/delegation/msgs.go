@@ -43,6 +43,10 @@ type MsgDelegate struct {
 	Expiration time.Time      `json:"expiration"`
 }
 
+func NewMsgDelegate(granter sdk.AccAddress, grantee sdk.AccAddress, capability Capability, expiration time.Time) MsgDelegate {
+	return MsgDelegate{Granter: granter, Grantee: grantee, Capability: capability, Expiration: expiration}
+}
+
 func (msg MsgDelegate) Route() string {
 	return "delegation"
 }

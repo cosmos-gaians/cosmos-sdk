@@ -102,12 +102,12 @@ func TestKeeperDelegation(t *testing.T) {
 	lotCoin := sdk.NewCoins(sdk.NewInt64Coin("tree", 4567))
 
 	// expired
-	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(-1*time.Hour))
+	input.dk.Delegate(ctx, addr2, addr, delegation.SendCapability{SpendLimit: someCoin}, now.Add(-1*time.Hour))
 	cap = input.dk.GetCapability(ctx, addr, addr2, bank.MsgSend{})
 	require.Nil(t, cap)
 
 	// non-expired
-	input.dk.Delegate(ctx, addr2, addr, banktypes.SendCapability{SpendLimit: someCoin}, now.Add(time.Hour))
+	input.dk.Delegate(ctx, addr2, addr, delegation.SendCapability{SpendLimit: someCoin}, now.Add(time.Hour))
 	cap = input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
 	require.NotNil(t, cap)
 	require.Equal(t, cap.MsgType(), bank.MsgSend{})
@@ -161,7 +161,7 @@ func TestKeeperFees(t *testing.T) {
 	require.False(t, ok)
 
 	// allow it
-	input.dk.DelegateFeeAllowance(ctx, addr2, addr, banktypes.FeeCapability{someCoin})
+	input.dk.DelegateFeeAllowance(ctx, addr2, addr, delegation.BasicFeeAllowance{someCoin})
 
 	// okay under threshold
 	ok = input.dk.AllowDelegatedFees(ctx, addr2, addr, smallCoin)

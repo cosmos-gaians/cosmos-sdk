@@ -2,6 +2,7 @@ package delegation
 
 import (
 	"encoding/json"
+	"github.com/cosmos/cosmos-sdk/client"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -60,14 +61,22 @@ func (AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Router
 
 // get the root tx command of this module
 func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	// return cli.GetTxCmd(cdc)
-	panic("need to add cli.GetTxCmd(cdc)")
+	txCmd := &cobra.Command{
+		Use:   ModuleName,
+		Short: "Delegation transactions subcommands",
+	}
+
+	txCmd.AddCommand(client.PostCommands(
+		GetCmdDelegate(cdc),
+	)...)
+
+	return txCmd
 }
 
 // get the root query command of this module
 func (AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	// return cli.GetQueryCmd(cdc)
-	panic("need to add cli.GetQueryCmd(cdc)")
+    return nil
 }
 
 // AppModule defines external data for the module
