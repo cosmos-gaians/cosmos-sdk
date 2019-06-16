@@ -1,7 +1,6 @@
 package contract
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -92,6 +91,4 @@ func TestRegenInit(t *testing.T) {
 	if len(res.Msgs) != 1 {
 		t.Fatalf("Unexpected result: %v", res)
 	}
-
-	fmt.Printf("%#v\n", res.Msgs[0])
 }

@@ -77,7 +77,7 @@ func (k Keeper) getNewContractId(ctx sdk.Context) sdk.AccAddress {
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
-	addr := make([]byte, 32)
+	addr := make([]byte, 20)
 	addr[0] = 'C'
 	binary.PutUvarint(addr[1:], id)
 	return addr
@@ -180,8 +180,6 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 	if stdErr != nil {
 		return sdk.ErrUnknownRequest(stdErr.Error()).Result()
 	}
-
-	fmt.Printf("contract: %s\n", contract)
 
 	res, err := Run(k.cdc, store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
 	if err != nil {

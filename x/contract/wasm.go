@@ -117,7 +117,6 @@ func run(code []byte, call string, args []interface{}, parse ResultParser) (inte
 	if err != nil {
 		return nil, errors.Wrap(err, "Execution failure")
 	}
-	fmt.Printf("%v: %v\n", ret.GetType(), ret)
 
 	return parse(instance, ret)
 }
