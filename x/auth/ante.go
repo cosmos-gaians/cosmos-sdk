@@ -141,6 +141,12 @@ func NewAnteHandler(ak AccountKeeper, fck FeeCollectionKeeper, feeDelegationHand
 			fck.AddCollectedFees(newCtx, stdTx.Fee.Amount)
 		}
 
+		if len(stdTx.FeeAccount) != 0 {
+			if err := feeAccount.SetSequence(feeAccount.GetSequence() + 1); err != nil {
+				panic(err)
+			}
+		}
+
 		// stdSigs contains the sequence number, account number, and signatures.
 		// When simulating, this would just be a 0-length slice.
 		stdSigs := stdTx.GetSignatures()
