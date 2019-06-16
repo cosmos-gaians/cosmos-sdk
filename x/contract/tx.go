@@ -1,4 +1,4 @@
-package cli
+package contract
 
 import (
 	"strconv"
@@ -11,7 +11,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	auth "github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/contract"
 )
 
 const (
@@ -22,7 +21,7 @@ const (
 // GetTxCmd returns the transaction commands for this module
 func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
-		Use:                        contract.ModuleName,
+		Use:                        ModuleName,
 		Short:                      "Contract transaction subcommands",
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
@@ -30,6 +29,8 @@ func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	}
 	txCmd.AddCommand(
 		StoreCodeCmd(cdc),
+		CreateContractCmd(cdc),
+		SendContractCmd(cdc),
 	)
 	return txCmd
 }
@@ -47,13 +48,13 @@ func StoreCodeCmd(cdc *codec.Codec) *cobra.Command {
 				WithAccountDecoder(cdc)
 
 			// parse coins trying to be sent
-			wasm, err := contract.ReadWasmFromFile(args[1])
+			wasm, err := ReadWasmFromFile(args[1])
 			if err != nil {
 				return err
 			}
 
 			// build and sign the transaction, then broadcast to Tendermint
-			msg := contract.MsgStoreCode{
+			msg := MsgStoreCode{
 				Sender:       cliCtx.GetFromAddress(),
 				WASMByteCode: wasm,
 			}
@@ -93,9 +94,9 @@ func CreateContractCmd(cdc *codec.Codec) *cobra.Command {
 			initMsg := args[3]
 
 			// build and sign the transaction, then broadcast to Tendermint
-			msg := contract.MsgCreateContract{
+			msg := MsgCreateContract{
 				Sender:    cliCtx.GetFromAddress(),
-				Code:      contract.CodeID(codeID),
+				Code:      CodeID(codeID),
 				InitFunds: coins,
 				InitMsg:   []byte(initMsg),
 			}
@@ -135,7 +136,7 @@ func SendContractCmd(cdc *codec.Codec) *cobra.Command {
 			sendMsg := args[3]
 
 			// build and sign the transaction, then broadcast to Tendermint
-			msg := contract.MsgSendContract{
+			msg := MsgSendContract{
 				Sender:   cliCtx.GetFromAddress(),
 				Contract: contractAddr,
 				Payment:  coins,

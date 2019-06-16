@@ -2,6 +2,7 @@ package contract
 
 import (
 	"encoding/json"
+
 	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/gorilla/mux"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 )
 
@@ -26,15 +28,16 @@ const StoreKey = ModuleName
 type AppModuleBasic struct{}
 
 func (am AppModuleBasic) RegisterRESTRoutes(context.CLIContext, *mux.Router) {
-	panic("implement me")
+	// panic("implement me")
 }
 
-func (am AppModuleBasic) GetTxCmd(*codec.Codec) *cobra.Command {
-	panic("implement me")
+func (am AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
+	return GetTxCmd(cdc)
 }
 
 func (am AppModuleBasic) GetQueryCmd(*codec.Codec) *cobra.Command {
-	panic("implement me")
+	return nil
+	// panic("implement me")
 }
 
 var _ module.AppModuleBasic = AppModuleBasic{}
