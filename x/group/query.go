@@ -18,6 +18,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 
 	agentQueryCmd.AddCommand(client.GetCommands(
 		GetCmdGetGroup(queryRoute, cdc),
+		GetCmdGetGroups(queryRoute, cdc),
 		GetCmdGetProposal(queryRoute, cdc),
 	)...)
 
@@ -38,6 +39,29 @@ func GetCmdGetGroup(queryRoute string, cdc *codec.Codec) *cobra.Command {
 			if err != nil {
 				fmt.Println(err)
 				fmt.Printf("could not resolve group - %s \n", id)
+				return nil
+			}
+
+			fmt.Println(string(res))
+
+			return nil
+		},
+	}
+}
+
+// GetCmdGetGroups queries information about an group
+func GetCmdGetGroups(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "groups",
+		Short: "get groups",
+		// Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			res, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/groups", queryRoute), nil)
+			if err != nil {
+				fmt.Println(err)
+				// fmt.Printf("could not resolve group - %s \n", id)
 				return nil
 			}
 

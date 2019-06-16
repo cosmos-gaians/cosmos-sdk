@@ -9,6 +9,7 @@ import (
 // query endpoints supported by the governance Querier
 const (
 	QueryGet            = "get"
+	QueryGroups         = "groups"
 	QueryGroupsByMember = "groups_by_member"
 )
 
@@ -17,6 +18,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 		switch path[0] {
 		case QueryGet:
 			return queryGroup(ctx, path[1:], req, keeper)
+		case QueryGroups:
+			return queryGroups(ctx, path[1:], req, keeper)
 		case QueryGroupsByMember:
 			return queryGroupsByMemberAddress(ctx, path[1:], req, keeper)
 		default:
@@ -41,6 +44,16 @@ func queryGroup(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Ke
 	}
 
 	res, jsonErr := codec.MarshalJSONIndent(keeper.cdc, info)
+	if jsonErr != nil {
+		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", jsonErr.Error()))
+	}
+	return res, nil
+}
+
+func queryGroups(ctx sdk.Context, path []string, req abci.RequestQuery, keeper Keeper) (res []byte, err sdk.Error) {
+	groups := keeper.GetGroups(ctx)
+
+	res, jsonErr := codec.MarshalJSONIndent(keeper.cdc, groups)
 	if jsonErr != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("could not marshal result to JSON", jsonErr.Error()))
 	}
