@@ -118,6 +118,33 @@ func (k Keeper) RevokeFeeAllowance(ctx sdk.Context, grantee sdk.AccAddress, gran
 	store.Delete(FeeAllowanceKey(grantee, granter))
 }
 
+type FeeAllowanceGrant struct {
+	Allowance FeeAllowance   `json:"allowance"`
+	Grantee   sdk.AccAddress `json:"grantee"`
+	Granter   sdk.AccAddress `json:"granter"`
+}
+
+func (k Keeper) GetFeeAllowances(ctx sdk.Context, grantee sdk.AccAddress) []FeeAllowanceGrant {
+	prefix := fmt.Sprintf("g/%x/", grantee)
+	prefixBytes := []byte(prefix)
+	store := ctx.KVStore(k.storeKey)
+	var grants []FeeAllowanceGrant
+	iter := sdk.KVStorePrefixIterator(store, prefixBytes)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		granter, _ := sdk.AccAddressFromHex(string(iter.Key()[len(prefix):]))
+		bz := iter.Value()
+		var allowance FeeAllowance
+		k.cdc.MustUnmarshalBinaryBare(bz, &allowance)
+		grants = append(grants, FeeAllowanceGrant{
+			Allowance: allowance,
+			Grantee:   grantee,
+			Granter:   granter,
+		})
+	}
+	return grants
+}
+
 func (k Keeper) AllowDelegatedFees(ctx sdk.Context, grantee sdk.AccAddress, granter sdk.AccAddress, fee sdk.Coins) bool {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(FeeAllowanceKey(grantee, granter))
