@@ -14,11 +14,17 @@ struct RegenInitMsg {
 struct RegenState {
     verifier: Vec<u8>,
     beneficiary: Vec<u8>,
+    funder: Vec<u8>,
     payout: u64,
 }
 
 #[derive(Serialize, Deserialize)]
-struct RegenSendMsg {}
+enum RegenSendMsg {
+    #[serde(rename = "verify")]
+    Verify,
+    #[serde(rename = "cancel")]
+    Cancel,
+}
 
 pub fn init(params: InitParams) -> Result<Vec<CosmosMsg>, Error> {
     let msg: RegenInitMsg = from_slice(&params.msg)?;
@@ -27,24 +33,47 @@ pub fn init(params: InitParams) -> Result<Vec<CosmosMsg>, Error> {
         verifier: msg.verifier,
         beneficiary: msg.beneficiary,
         payout: params.sent_funds,
+        funder: params.sender
     })?);
 
     Ok(Vec::new())
 }
 
 pub fn send(params: SendParams) -> Result<Vec<CosmosMsg>, Error> {
-    let state: RegenState = from_slice(&get_state())?;
+    let msg: RegenSendMsg = from_slice(&params.msg)?;
 
-    if params.sender == state.verifier {
-        Ok(vec![CosmosMsg::SendTx {
-            from_address: params.contract_address,
-            to_address: state.beneficiary,
-            amount: vec![SendAmount {
-                denom: "tree".into(),
-                amount: state.payout.to_string(),
-            }],
-        }])
-    } else {
-        bail!("Unauthorized")
+    match msg {
+        RegenSendMsg::Verify => {
+            let state: RegenState = from_slice(&get_state())?;
+
+            if params.sender == state.verifier {
+                Ok(vec![CosmosMsg::SendTx {
+                    from_address: params.contract_address,
+                    to_address: state.beneficiary,
+                    amount: vec![SendAmount {
+                        denom: "tree".into(),
+                        amount: state.payout.to_string(),
+                    }],
+                }])
+            } else {
+                bail!("Unauthorized")
+            }
+        }
+        RegenSendMsg::Cancel => {
+            let state: RegenState = from_slice(&get_state())?;
+
+            if params.sender == state.verifier {
+                Ok(vec![CosmosMsg::SendTx {
+                    from_address: params.contract_address,
+                    to_address: state.funder,
+                    amount: vec![SendAmount {
+                        denom: "tree".into(),
+                        amount: state.payout.to_string(),
+                    }],
+                }])
+            } else {
+                bail!("Unauthorized")
+            }
+        }
     }
 }
