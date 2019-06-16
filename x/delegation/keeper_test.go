@@ -124,4 +124,13 @@ func TestKeeperDelegation(t *testing.T) {
 	cap = input.dk.GetCapability(ctx, addr, addr2, bank.MsgSend{})
 	require.Nil(t, cap)
 
+	// revoke wrong item
+	input.dk.Revoke(ctx, addr2, addr2, bank.MsgSend{})
+	cap = input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
+	require.NotNil(t, cap)
+
+	// revoke proper item
+	input.dk.Revoke(ctx, addr2, addr, bank.MsgSend{})
+	cap = input.dk.GetCapability(ctx, addr2, addr, bank.MsgSend{})
+	require.Nil(t, cap)
 }
