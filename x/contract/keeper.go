@@ -2,7 +2,9 @@ package contract
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -17,6 +19,10 @@ type Keeper struct {
 	accountKeeper    auth.AccountKeeper
 	bankKeeper       bank.Keeper
 	delegationKeeper delegation.Keeper
+}
+
+func NewKeeper(storeKey sdk.StoreKey, cdc *codec.Codec, accountKeeper auth.AccountKeeper, bankKeeper bank.Keeper, delegationKeeper delegation.Keeper) Keeper {
+	return Keeper{storeKey: storeKey, cdc: cdc, accountKeeper: accountKeeper, bankKeeper: bankKeeper, delegationKeeper: delegationKeeper}
 }
 
 var (
@@ -71,34 +77,41 @@ func (k Keeper) getNewContractId(ctx sdk.Context) sdk.AccAddress {
 }
 
 func addrFromUint64(id uint64) sdk.AccAddress {
-	addr := make([]byte, binary.MaxVarintLen64+1)
+	addr := make([]byte, 20)
 	addr[0] = 'C'
-	n := binary.PutUvarint(addr[1:], id)
-	return addr[:n+1]
+	binary.PutUvarint(addr[1:], id)
+	return addr
 }
 
-func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId CodeID, initData []byte, coins sdk.Coins) (sdk.AccAddress, sdk.Error) {
+type contractMsg struct {
+	ContractAddress sdk.AccAddress  `json:"contract_address"`
+	Sender          sdk.AccAddress  `json:"sender"`
+	Msg             json.RawMessage `json:"msg"`
+	SentFunds       int64           `json:"sent_funds"`
+}
+
+func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId CodeID, initData []byte, coins sdk.Coins) (sdk.AccAddress, sdk.Result) {
 	// Create a contract address
 	addr := k.getNewContractId(ctx)
 
 	// Create a contract account
 	existingAcc := k.accountKeeper.GetAccount(ctx, addr)
 	if existingAcc != nil {
-		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("account with address %s already exists", addr.String()))
+		return nil, sdk.ErrUnknownRequest(fmt.Sprintf("account with address %s already exists", addr.String())).Result()
 	}
 
 	// Deposit initial contract funds
-	k.accountKeeper.SetAccount(ctx, &auth.BaseAccount{Address:addr})
+	k.accountKeeper.SetAccount(ctx, &auth.BaseAccount{Address: addr})
 	err := k.bankKeeper.SendCoins(ctx, creator, addr, coins)
 	if err != nil {
-		return nil, err
+		return nil, err.Result()
 	}
 
 	// Retrieve contract code
 	store := ctx.KVStore(k.storeKey)
 	codeBz := store.Get(KeyCode(codeId))
 	if len(codeBz) == 0 {
-		return nil, sdk.ErrUnknownRequest("can't find contract code")
+		return nil, sdk.ErrUnknownRequest("can't find contract code").Result()
 	}
 
 	// Store contract code ID
@@ -106,10 +119,34 @@ func (k Keeper) CreateContract(ctx sdk.Context, creator sdk.AccAddress, codeId C
 	// Store secondary index to look up contracts using a specific CodeID
 	store.Set(KeyCodeHasContract(codeId, addr), []byte{0})
 
-	// Call into WASM
-	panic("TODO")
+	// TODO: we really need to handle coins, not just one int
+	amt := coins[0].Amount.Int64()
+	msg := contractMsg{
+		ContractAddress: addr,
+		Sender:          creator,
+		Msg:             initData,
+		SentFunds:       amt,
+	}
+	txtMsg, stdErr := json.Marshal(msg)
+	if stdErr != nil {
+		return nil, sdk.ErrUnknownRequest(stdErr.Error()).Result()
+	}
 
-	//return addr, nil
+	// TODO: setup proper db key to expose for Read/Write
+	res, err := Run(k.cdc, store, KeyContractState(addr), codeBz, "init", []interface{}{txtMsg})
+	if err != nil {
+		return nil, err.Result()
+	}
+
+	out := sdk.Result{}
+	for _, msg := range res.Msgs {
+		out = k.delegationKeeper.DispatchAction(ctx, addr, msg)
+		if !out.IsOK() {
+			return nil, out
+		}
+	}
+
+	return addr, out
 }
 
 func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sdk.AccAddress, msg []byte, coins sdk.Coins) sdk.Result {
@@ -131,8 +168,31 @@ func (k Keeper) SendContract(ctx sdk.Context, sender sdk.AccAddress, contract sd
 		return sdk.ErrUnknownRequest("can't find contract code").Result()
 	}
 
-	// Retrieve state
-	//stateBz := store.Get(KeyContractState(contract))
+	// TODO: we really need to handle coins, not just one int
+	amt := coins[0].Amount.Int64()
+	cmsg := contractMsg{
+		ContractAddress: contract,
+		Sender:          sender,
+		Msg:             msg,
+		SentFunds:       amt,
+	}
+	txtMsg, stdErr := json.Marshal(cmsg)
+	if stdErr != nil {
+		return sdk.ErrUnknownRequest(stdErr.Error()).Result()
+	}
 
-	panic("TODO")
+	res, err := Run(k.cdc, store, KeyContractState(contract), codeBz, "send", []interface{}{txtMsg})
+	if err != nil {
+		return err.Result()
+	}
+
+	out := sdk.Result{}
+	for _, msg := range res.Msgs {
+		fmt.Printf("msg: %#v\n", msg)
+		out = k.delegationKeeper.DispatchAction(ctx, contract, msg)
+		if !out.IsOK() {
+			return out
+		}
+	}
+	return out
 }

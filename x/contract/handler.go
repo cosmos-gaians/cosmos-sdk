@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"github.com/tendermint/tendermint/libs/bech32"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -35,7 +36,7 @@ func EncodeBech32CodeID(id CodeID) (string, error) {
 	n := binary.PutUvarint(addr, uint64(id))
 	bch, err := bech32.ConvertAndEncode(Bech32CodePrefix, addr[:n])
 	if err != nil {
-        return "", err
+		return "", err
 	}
 	return bch, nil
 }
@@ -43,10 +44,10 @@ func EncodeBech32CodeID(id CodeID) (string, error) {
 func DecodeBech32CodeID(bch string) (CodeID, error) {
 	hrp, bz, err := bech32.DecodeAndConvert(bch)
 	if err != nil {
-        return 0, err
+		return 0, err
 	}
 	if hrp != Bech32CodePrefix {
-        return 0, fmt.Errorf("expected bech32 prefix %s, got %s", Bech32CodePrefix, hrp)
+		return 0, fmt.Errorf("expected bech32 prefix %s, got %s", Bech32CodePrefix, hrp)
 	}
 	n, err := binary.ReadUvarint(bytes.NewBuffer(bz))
 	if err != nil {
@@ -62,7 +63,7 @@ func handleMsgStoreCode(ctx sdk.Context, keeper Keeper, msg MsgStoreCode) sdk.Re
 	}
 	res := sdk.Result{}
 	bch, e := EncodeBech32CodeID(id)
-	if err != nil {
+	if e != nil {
 		return sdk.ErrUnknownRequest(e.Error()).Result()
 	}
 	res.Tags = res.Tags.AppendTag("contract.code-id", bch)
@@ -70,11 +71,10 @@ func handleMsgStoreCode(ctx sdk.Context, keeper Keeper, msg MsgStoreCode) sdk.Re
 }
 
 func handleMsgCreateContract(ctx sdk.Context, keeper Keeper, msg MsgCreateContract) sdk.Result {
-	id, err := keeper.CreateContract(ctx, msg.Sender, msg.Code, msg.InitMsg, msg.InitFunds)
-	if err != nil {
-		return err.Result()
+	id, res := keeper.CreateContract(ctx, msg.Sender, msg.Code, msg.InitMsg, msg.InitFunds)
+	if !res.IsOK() {
+		return res
 	}
-	res := sdk.Result{}
 	res.Tags = res.Tags.AppendTag("contract.address", id.String())
 	return res
 }
