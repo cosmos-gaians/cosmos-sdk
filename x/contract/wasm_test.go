@@ -1,27 +1,11 @@
 package contract
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/store/transient"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
-
-func TestImportFunc(t *testing.T) {
-	simple, err := ReadWasmFromFile("examples/import_func/build/import_func.wasm")
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
-
-	res, err := run(simple, "add1", []interface{}{int32(7), int32(9)}, AsString)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
-	if res.(string) != strings.Repeat("fool ", 17) {
-		t.Fatalf("Unexpected result: %d", res)
-	}
-}
 
 func mockKVStore() (sdk.KVStore, []byte) {
 	store := transient.NewStore()
@@ -47,7 +31,7 @@ func TestRegenInit(t *testing.T) {
 		}
 	}`
 
-	res, err := Run(MockCodec(), store, key, regen, "init", []interface{}{initMsg})
+	res, err := Run(MockCodec(), store, key, regen, "init_wrapper", []interface{}{initMsg})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -59,7 +43,7 @@ func TestRegenInit(t *testing.T) {
 		invalid: 123
 	}`
 
-	res, err = Run(MockCodec(), store, key, regen, "send", []interface{}{badSend})
+	res, err = Run(MockCodec(), store, key, regen, "send_wrapper", []interface{}{badSend})
 	if err == nil {
 		t.Fatal("Allowed bad json")
 	}
@@ -71,7 +55,7 @@ func TestRegenInit(t *testing.T) {
 		"msg": {}
 	}`
 
-	res, err = Run(MockCodec(), store, key, regen, "send", []interface{}{unauthSend})
+	res, err = Run(MockCodec(), store, key, regen, "send_wrapper", []interface{}{unauthSend})
 	if err == nil {
 		t.Fatal("Allowed no auth")
 	}
@@ -83,7 +67,7 @@ func TestRegenInit(t *testing.T) {
 		"msg": {}
 	}`
 
-	res, err = Run(MockCodec(), store, key, regen, "send", []interface{}{goodSend})
+	res, err = Run(MockCodec(), store, key, regen, "send_wrapper", []interface{}{goodSend})
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

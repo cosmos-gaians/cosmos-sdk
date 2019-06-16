@@ -1,23 +1,75 @@
+extern crate failure;
 extern crate heapless;
 extern crate serde;
-extern crate serde_json_core;
-extern crate numtoa;
+extern crate serde_json;
 
+use failure::Error;
 use serde::{Deserialize, Serialize};
-use serde_json_core::de::from_slice;
-use serde_json_core::ser::to_string;
+use serde_json::value::RawValue;
+use serde_json::{from_slice, to_vec};
 use std::ffi::{CStr, CString};
 use std::mem;
 use std::os::raw::{c_char, c_void};
 
-use heapless::consts::U1024;
-use heapless::String;
+mod contract;
+use contract::{init, send};
 
-use numtoa::NumToA;
+#[derive(Serialize, Deserialize)]
+pub struct SendParams<'a> {
+    contract_address: String,
+    sender: String,
+    #[serde(borrow)]
+    msg: &'a RawValue,
+    sent_funds: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RegenSendMsg {}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", content = "value")]
+pub enum CosmosMsg {
+    #[serde(rename = "cosmos-sdk/MsgSend")]
+    SendTx {
+        from_address: String,
+        to_address: String,
+        amount: Vec<SendAmount>,
+    },
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SendAmount {
+    denom: String,
+    amount: String,
+}
+
+#[derive(Serialize, Deserialize)]
+enum ContractResult {
+    #[serde(rename = "msgs")]
+    Msgs(Vec<CosmosMsg>),
+    #[serde(rename = "error")]
+    Error(String),
+}
 
 extern "C" {
-    fn read() -> *mut c_char;
-    fn write(string: *mut c_char);
+    fn c_read() -> *mut c_char;
+    fn c_write(string: *mut c_char);
+}
+
+pub fn get_state() -> std::vec::Vec<u8> {
+    let state: std::vec::Vec<u8>;
+
+    unsafe {
+        state = CStr::from_ptr(c_read()).to_bytes().to_vec();
+    }
+
+    state
+}
+
+pub fn set_state(state: Vec<u8>) {
+    unsafe {
+        c_write(CString::new(state).unwrap().into_raw());
+    }
 }
 
 #[no_mangle]
@@ -37,147 +89,87 @@ pub extern "C" fn deallocate(pointer: *mut c_void, capacity: usize) {
 }
 
 #[derive(Serialize, Deserialize)]
-struct MsgCreateContract<'a> {
-    contract_address: &'a str,
-    sender: &'a str,
-    msg: RegenInitMsg<'a>,
+pub struct InitParams<'a> {
+    contract_address: String,
+    sender: String,
+    #[serde(borrow)]
+    msg: &'a RawValue,
     sent_funds: u64,
 }
 
-#[derive(Serialize, Deserialize)]
-struct RegenInitMsg<'a> {
-    verifier: &'a str,
-    beneficiary: &'a str,
-}
-
-#[derive(Serialize, Deserialize)]
-struct RegenState<'a> {
-    verifier: &'a str,
-    beneficiary: &'a str,
-    payout: u64,
+fn make_error_c_string<E: Into<Error>>(error: E) -> *mut c_char {
+    let error: Error = error.into();
+    CString::new(to_vec(&ContractResult::Error(error.to_string())).unwrap())
+        .unwrap()
+        .into_raw()
 }
 
 #[no_mangle]
-pub extern "C" fn init(params_ptr: *mut c_char) -> *mut c_char {
+pub extern "C" fn init_wrapper(params_ptr: *mut c_char) -> *mut c_char {
     let params: std::vec::Vec<u8>;
+
     unsafe {
         params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
     }
 
-    let pres: serde_json_core::de::Result<MsgCreateContract> = from_slice(&params);
-    if pres.is_err() {
-        return CString::new(r#"{"error": "Could not parse MsgCreateContract json."}"#)
-            .unwrap()
-            .into_raw();
-    }
-    let params = pres.unwrap();
+    // Catches and formats deserialization errors
+    let params: InitParams = match from_slice(&params) {
+        Ok(params) => params,
+        Err(e) => return make_error_c_string(e),
+    };
 
-    let state: String<U1024> = to_string(&RegenState {
-        verifier: params.msg.verifier,
-        beneficiary: params.msg.beneficiary,
-        payout: params.sent_funds,
-    })
-    .unwrap();
+    // Catches and formats errors from the logic
+    let res = match init(params) {
+        Ok(msgs) => ContractResult::Msgs(msgs),
+        Err(e) => return make_error_c_string(e),
+    };
 
-    unsafe {
-        write(CString::new(state.as_bytes()).unwrap().into_raw());
-    }
+    // Catches and formats serialization errors
+    let res = match to_vec(&res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
 
-    CString::new(r#"{"msgs": []}"#).unwrap().into_raw()
+    // Catches and formats CString errors
+    let res = match CString::new(res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
+
+    res.into_raw()
 }
-
-#[derive(Serialize, Deserialize)]
-struct MsgSendContract<'a> {
-    contract_address: &'a str,
-    sender: &'a str,
-    msg: RegenSendMsg,
-    sent_funds: u64,
-}
-
-#[derive(Serialize, Deserialize)]
-struct RegenSendMsg {}
 
 #[no_mangle]
-pub extern "C" fn send(params_ptr: *mut c_char) -> *mut c_char {
+pub extern "C" fn send_wrapper(params_ptr: *mut c_char) -> *mut c_char {
     let params: std::vec::Vec<u8>;
-    let state: std::vec::Vec<u8>;
 
     unsafe {
         params = CStr::from_ptr(params_ptr).to_bytes().to_vec();
-        state = CStr::from_ptr(read()).to_bytes().to_vec();
     }
 
-    let pres: serde_json_core::de::Result<MsgSendContract> = from_slice(&params);
-    if pres.is_err() {
-        return CString::new(r#"{"error": "Could not parse MsgSendContract json."}"#)
-            .unwrap()
-            .into_raw();
-    }
-    let params = pres.unwrap();
+    // Catches and formats deserialization errors
+    let params: SendParams = match from_slice(&params) {
+        Ok(params) => params,
+        Err(e) => return make_error_c_string(e),
+    };
 
-    let sres: serde_json_core::de::Result<RegenState> = from_slice(&state);
-    if sres.is_err() {
-        return CString::new(r#"{"error": "Could not parse RegenState json."}"#)
-            .unwrap()
-            .into_raw();
-    }
-    let mut state = sres.unwrap();
+    // Catches and formats errors from the logic
+    let res = match send(params) {
+        Ok(msgs) => ContractResult::Msgs(msgs),
+        Err(e) => return make_error_c_string(e),
+    };
 
+    // Catches and formats serialization errors
+    let res = match to_vec(&res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
 
-    if params.sender == state.verifier {
-        // format how much money to produce
-        let funds = state.payout + params.sent_funds;
+    // Catches and formats CString errors
+    let res = match CString::new(res) {
+        Ok(res) => res,
+        Err(e) => return make_error_c_string(e),
+    };
 
-        // TODO: clean this up...
-        // I make enough space for numtoa, but need to manually trim off leading spaces
-        let mut amount = b"          ".to_vec();
-        funds.numtoa_str(10, &mut amount);
-        let mut n = 0;
-        while amount[n] == b' ' {
-            n+=1;
-        }
-        amount = amount[n..].to_vec();
-
-        state.payout = 0;
-        let state_str: String<U1024> = to_string(&state).unwrap();
-        unsafe {
-            write(CString::new(state_str.as_bytes()).unwrap().into_raw());
-        }
-        // return CString::new(amount).unwrap().into_raw();
-
-        let mut output = br#"{"msgs":[
-            {
-                "type":"cosmos-sdk/MsgSend",
-                "value":{
-                    "from_address":""#.to_vec();
-        // params.contract
-        let outb = br#"",  
-                    "to_address":""#.to_vec();
-        // state.beneficiary            
-        let outc = br#"",  
-                    "amount":[
-                        {
-                            "denom":"tree",
-                            "amount":""#.to_vec();
-        // amount
-        // let amount = b"500".to_vec();
-        let outd = br#""  
-                        }
-                    ]
-                }
-            }
-        ]}"#.to_vec();
-        output.extend(params.contract_address.bytes());
-        output.extend(outb);
-        output.extend(state.beneficiary.bytes());
-        output.extend(outc);
-        output.extend(amount);
-        output.extend(outd);
-
-        CString::new(output).unwrap().into_raw()
-    } else {
-        CString::new(r#"{"error": "Unauthorized"}"#)
-            .unwrap()
-            .into_raw()
-    }
+    res.into_raw()
 }

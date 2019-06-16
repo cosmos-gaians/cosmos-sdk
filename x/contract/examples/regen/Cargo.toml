@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 lto = true
 
 [dependencies]
-serde-json-core = { git = "https://github.com/japaric/serde-json-core" }
+serde_json = { version = "1.0.39", features = ["raw_value"] }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 heapless = "0.4.0"
-numtoa = "0.2.3"
+failure = "0.1.5"
