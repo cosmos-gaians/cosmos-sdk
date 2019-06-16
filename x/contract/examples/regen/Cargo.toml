@@ -6,8 +6,8 @@ authors = ["jehan <jehan@hotmail.com>"]
 [lib]
 crate-type = ["cdylib"]
 
-# [profile.release]
-# lto = true
+[profile.release]
+lto = true
 
 [dependencies]
 serde-json-core = { git = "https://github.com/japaric/serde-json-core" }
