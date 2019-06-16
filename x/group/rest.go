@@ -70,6 +70,24 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 		"/group/groups_by_member/{memberAddr}",
 		memberGroupsHandlerFn(cliCtx),
 	).Methods("GET")
+
+	r.HandleFunc(
+		"/group/groups",
+		groupsHandlerFn(cliCtx),
+	).Methods("GET")
+}
+func groupsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		route := fmt.Sprintf("custom/%s/%s", "group", "groups")
+
+		res, err := cliCtx.QueryWithData(route, nil)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+	}
 }
 
 func memberGroupsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
