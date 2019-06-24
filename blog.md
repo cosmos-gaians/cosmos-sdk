@@ -82,18 +82,19 @@ To integrate the WASM VM with the rest of our Cosmos blockchain we came up with 
 
 In order to know whether a contract has permission to execute a specific action we needed another layer on top of Cosmos's `BaseApp` router. This functionality is handled by the `delegation` module which checks if the action can be executed directly by the contract of if this action was delegated by some other account.
 
-We defined a relatively simple API for smart contracts, that managed to cover all our use cases. This should be expanded as needed in the future, but we tend to minimal complexity needed to perform the task at hand.
+We defined a relatively simple API for smart contracts, that covered our famer/funder/verifier use case. This should be expanded as needed in the future, but kept to the minimal complexity needed to perform the task at hand.
+
 In order to run a contract, there are three steps:
 
-1. [Upload the smart contract wasm code](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L59). This is a large chunk (dozens of KB now, to be optimized) and is stored one time, allowing us to instantiate multiple instances of a contract without uploading more code.
+1. [Upload the smart contract wasm code](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L59). This is a large chunk (dozens of KB now, but it can optimized) and is stored one time, allowing us to instantiate multiple instances of a contract without uploading more code.
 2. [Create a contract](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L74), which is one instance of the code. This creates a new account for an instance of this code. It then moves any sent tokens to the contract and calls the `init` method exported by the wasm code.
 3. Once there is a contract instance, you can [call the contract](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L83) any number of times, in order to execute the logic. This will call the `send` method exported by the wasm code.
 
-Both the `MsgCreateContract` and `MsgSendContract` take a set of tokens to transfer to the contract, as well as raw `[]byte` with the contract-specific message. This messages is known to the client and the wasm code, but doesn't need to be known to the sdk code, just like tendermint is agnostic to the tx bytes. For simplicity, we chose to settle on JSON as the serialization format, and we were all quite happy with this. 
+Both the `MsgCreateContract` and `MsgSendContract` take a set of tokens to transfer to the contract, as well as raw `[]byte` with a contract-specific message. This message is known to the client and the Wasm code, but doesn't need to be known to the SDK code, just like Tendermint is agnostic to the tx bytes. For simplicity, we chose to settle on JSON as the serialization format. We were all quite happy with this, but other methods could be used in the future.
 
 ### Looking at an example contract
 
-When we pass the information to the contract, we create a json message containing verified information from the sdk, along with some raw app-dependent bytes that can be interpreted by an individual contract. We provide the verified information of `contract_address`, `sender`, and `sent_funds` in both [SendParams](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/lib.rs#L17-L25) and [InitParams](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/lib.rs#L91-L98):
+When we pass information to the contract, we create a JSON message containing verified information from the sdk, along with some raw app-dependent bytes that can be interpreted by an individual contract. We provide the verified information of `contract_address`, `sender`, and `sent_funds` in both [SendParams](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/lib.rs#L17-L25) and [InitParams](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/lib.rs#L91-L98):
 
 
 ```rust
