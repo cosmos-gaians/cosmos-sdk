@@ -116,4 +116,137 @@ In order to know whether a contract has permission to execute a specific action 
 Cosmos's `BaseApp` router. This functionality is handled by the `delegation` module which checks if the action
 can be executed directly by the contract of if this action was delegated by some other account.
 
-TODO: more details about the implementation
+We defined a relatively simple API for smart contracts, that managed to cover all our use cases. This should be
+expanded as needed in the future, but we tend to minimal complexity needed to perform the task at hand.
+In order to run a contract, there are three steps:
+
+1. [Upload the smart contract wasm code](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L59). 
+   This is a large chunk (dozens of KB now, to be optimized) and is stored one
+   time, allowing us to instantiate multiple instances of a contract without uploading more code.
+2. [Create a contract](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L74), 
+   which is one instance of the code. This creates a new account for an instance of this code.
+   It then moves any sent tokens to the contract and calls the `init` method exported by the wasm code.
+3. Once there is a contract instance, you can [call the contract](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L83) 
+   any number of times, in order to execute the logic. This will call the `send` method exported by the wasm code.
+
+Both the `MsgCreateContract` and `MsgSendContract` take a set of tokens to transfer to the contract, as well as 
+raw `[]byte` with the contract-specific message. This messages is known to the client and the wasm code, but doesn't
+need to be known to the sdk code, just like tendermint is agnostic to the tx bytes. For simplicity, we chose to
+settle on JSON as the serialization format, and we were all quite happy with this. 
+
+### Looking at an example contract
+
+When we pass the information
+to the contract, we create a json message containing verified information from the sdk, along with some raw 
+app-dependent bytes that can be interpreted by an individual contract. We provide the verified information of 
+`contract_address`, `sender`, and `sent_funds` in both 
+[SendParams](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/lib.rs#L17-L25) and 
+[InitParams](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/lib.rs#L91-L98):
+
+
+```rust
+#[derive(Serialize, Deserialize)]
+pub struct InitParams<'a> {
+    contract_address: String,
+    sender: String,
+    #[serde(borrow)]
+    msg: &'a RawValue,
+    sent_funds: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SendParams<'a> {
+    contract_address: String,
+    sender: String,
+    #[serde(borrow)]
+    msg: &'a RawValue,
+    sent_funds: u64,
+}
+```
+
+Each contract can then define it's own format for parsing the msg, such as [RegenInitMsg](https://github.com/cosmos-gaians/cosmos-sdk/blob/2020d2d11834e1cb2fe1971fcc83201a5aac2a8b/x/contract/examples/regen/src/contract.rs#L7-L11). Note we define all these items in standard cosmos-sdk
+json format, which is eg `cosmos1q....` for the addresses below, as well as the `sender` and `contract_address` passes in the params
+
+```rust
+#[derive(Serialize, Deserialize)]
+struct RegenInitMsg {
+    verifier: String,
+    beneficiary: String,
+}
+```
+
+When the contract wants to react to these incoming messages, it needs some state to make it's decisions. 
+We export functions `get_state()` and `set_state()` to the wasm contract, which allow it to set and get
+arbitrary data in a dedicated key in the contract substore. We also define this as a json structure,
+which is initialized in the `init` call, and can be used to control execution of the `send` call.
+
+```rust
+#[derive(Serialize, Deserialize)]
+struct RegenState {
+    verifier: String,
+    beneficiary: String,
+    payout: u64,
+    funder: String,
+}
+```
+
+Now we see the functionality the framework exposes to a contract, we can see how easy it is to write some logic.
+[init](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/contract.rs#L24-L35) 
+will just store the information on who can execute the contract. Note that it uses a mix of sdk-verified
+information `params.sent_funds`, with user-specified content `msg.verifier`:
+
+```rust
+pub fn init(params: InitParams) -> Result<Vec<CosmosMsg>, Error> {
+    let msg: RegenInitMsg = from_str(params.msg.get())?;
+
+    set_state(to_vec(&RegenState {
+        verifier: msg.verifier,
+        beneficiary: msg.beneficiary,
+        payout: params.sent_funds,
+        funder: params.sender
+    })?);
+
+    Ok(Vec::new())
+}
+```
+
+[send](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/examples/regen/src/contract.rs#L37-L55) can now
+compare the stored state with the sdk-verified `params.sender` to control whether to release the funds or not.
+Note that the return value of both `init` and `send` is `Result<Vec<CosmosMsg>, Error>`, which means it can
+return an Error code, or a (possibly empty) list of cosmos messages to dispatch on success. In send, we use both
+of these features:
+
+```rust
+pub fn send(params: SendParams) -> Result<Vec<CosmosMsg>, Error> {
+    let mut state: RegenState = from_slice(&get_state())?;
+    let funds = state.payout + params.sent_funds;
+    state.payout = 0;
+    set_state(to_vec(&state)?);
+
+    if params.sender == state.verifier {
+        Ok(vec![CosmosMsg::SendTx {
+            from_address: params.contract_address,
+            to_address: state.beneficiary,
+            amount: vec![SendAmount {
+                denom: "earth".into(),
+                amount: funds.to_string(),
+            }],
+        }])
+    } else {
+        bail!("Unauthorized")
+    }
+}
+```
+
+If the caller of `MsgSendContract` is the same as the verifier set in `MsgCreateContract`, then we will dispatch
+a message moving the funds inside the contract to the beneficiary specified in `init`. If it is called by any other
+user, then it will return an unauthorized error. (The observant reader may notice we hardcoded the token denomination
+to be "earth", which we did to simplify parsing... with a bit of polish outside of Hackatom, we can use proper sdk Coin types).
+
+Of course, this example is quite simple, but you can quickly see that a large variety of custom escrows, authorization, and 
+key management solutions can be built in this framework, with only a few lines of rust. In order to make that rust easy to work
+with, there was quite some work wrangling wasm and cgo bindings, and figuring how to pass arbitrary json through the wasm
+function call interface, which is defined in go-speak as `f(args ...int32) int32`. Details of that and how to interface
+go/rust/wasm through low-level c-bindings is quite interesting for anyone working to integrate wasm into their
+go applications, but a topic for another blog post.
+
