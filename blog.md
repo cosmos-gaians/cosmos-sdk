@@ -2,9 +2,9 @@ Regen Network, and our compatriots from TruStory, IOV, Althea and Wallet Connect
 
 Our team focused on hacking towards a clear use case: user friendly participation in smart contracts about ecological health. In order to create usable functionality for this the team had to overcome some key challenges: create a smart contracting framework for the Cosmos SDK and improved key management.
 
-And that is exactly what was accomplished. In 36 hours, the team pulled together an incredibly powerful and flexible smart contracting module using WebAssembly (Wasm) and key management modules that interact to create platform that is more powerful and robust than Ethereum, and built in the Cosmos SDK, making interoperability with other chains easy.
+And that is exactly what was accomplished. In 36 hours, the team pulled together an incredibly powerful and flexible, smart contracting module using WebAssembly (Wasm) and key management modules that interact to create platform that is more powerful and robust than Ethereum, and built in the Cosmos SDK, making interoperability with other chains easy.
 
-Let’s walk through the functionality that was built using the use-case we considered - a simple three-party contract for Regen Network involving a farmer, funder, and verifier. The funder and land steward create a contract that sends money to the farmer if the approved third-party verifier certifies that the land steward successfully implemented regenerative practices. In a real-world scenario our contract would be a bit more complex, possibly involving decentralized verification using satellite data, but for now this is a minimum viable contract.
+Let’s walk through the functionality that was built using the use-case we considered - a simple three-party contract for Regen Network involving a farmer, funder, and verifier. The funder and land steward create a contract that sends money to the farmer if the approved third-party verifier certifies that the land steward successfully implemented regenerative practices. In a real-world scenario our contract might be a bit more complex, possibly involving decentralized verification using satellite data, but for now this is a minimum viable contract.
 
 # Making our blockchain work for non-technical users
 
@@ -31,15 +31,15 @@ type FeeAllowance interface {
 }
 ```
 
-This interface allows for quite a bit of flexibility as to how fees can be delegates. A user could specify a daily or monthly limit for example.
+This interface allows for quite a bit of flexibility as to how fees can be delegated. A user could specify a daily or monthly limit for example.
 
-For our use case, the verifier of the contract could be delegated a certain daily fee allowance by their employer and there would be no need for these field agents to worry about tokens at all. Only the management of the organization would need to worry about keeping the company wallet filled and delegating appropriate allowances to their employees.
+For our use case, the verifier of the contract could be delegated a certain daily fee allowance by their employer and there would be no need for these agents to worry about tokens at all. Only the management of the organization would need to worry about keeping the company wallet filled and delegating appropriate allowances to their employees.
 
 ## Delegated Actions
 
-This solves part of the problem that our field verifier might have. This user can have a key on their phone that never touches tokens, but when we're writing our contract who is the verifier that actually signs the claim? Do we actually know which particular field agent will actually sign the claim? Does everything need to get signed by the main corporate key? Do all field agents need to walk around with a phone that has the master key that's referenced in our contract?
+This solves part of the problem that our field verifier might have. This user can have a key on their phone that never touches tokens, but when we're writing our contract what is the verifier key that actually signs the claim? Do we know which particular field agent will actually sign the claim? Does everything need to get signed by the main corporate key? Do all field agents need to walk around with a phone that has the master key referenced in the contract?
 
-A better solution would be to allow an organization to delegate some permissions - such as signing a verification claim - to their employees. To solve this we came up with a generalized solution for delegated actions.
+A better solution would be to allow an organization to delegate some permissions - such as signing a verification claim - to particular employees. To solve this we came up with a generalized solution for delegated actions.
 
 Delegated actions allow any user to delegate a permission to perform any action on their behalf to another user. We can do this with the `Capability` interface which allows for any level of permission granularity desired:
 
@@ -54,7 +54,7 @@ type Capability interface {
 ```
 
 This interface is pretty flexible and lets a Cosmos SDK developer define a capability for any
-`sdk.Msg`. Because capabilities can send back an updated state we can write capabilities that set a total spend limit and then are deleted when that amount of coins has been set. By default, every capability grant can also be set with an expiration time.
+`sdk.Msg`. Because capabilities can send back an updated state we can write capabilities that set a total spend limit and then are deleted when that amount of coins has been spent. By default, every capability grant can also have an expiration time.
 
 ## Key Groups
 
@@ -64,7 +64,7 @@ Key groups are basically multi-signature wallets which allow keys to be added or
 
 Groups can make proposals on any action that can be taken on the blockchain and send them back to the main app router via the `delegation` module which allows groups to execute actions that have been delegated to them.
 
-So to simplify the management of our verification organization, they could have a top-level key group at for the owners of the company. That top-level group would delegate fees and the ability to sign specific contracts to some of their employees. Each user in turn could have a key group which includes the keys for all of their devices. Key groups could even include a trusted third-party provider that signs using normal username/password methods to create a multi-factor authentication scenario that requires a device plus the third-party to sign.
+So to simplify the management of our verification organization, there could be a top-level key group for the owners of the company. That top-level group would delegate fees and the ability to sign specific contracts to some of their employees. Each user in turn could have a key group which includes the keys for all of their devices. Key groups could even include a trusted third-party provider that signs using normal username/password methods to create a multi-factor authentication scenario that requires a device plus the third-party to sign.
 
 We believe these functionalities together form a solid basis for greatly simplifying key management for individuals and organizations and we hope they will enable wide adoption of Cosmos-based Dapps by non-technical users.
 
@@ -74,21 +74,21 @@ The other part of our user scenario involves a simple multi-party smart contract
 
 We chose to implement our smart contracting framework using a Wasm virtual machine because there is already a good ecosystem of tooling around Wasm and this would allow us to use a sophisticated language like Rust.
 
-Wwe originally explored [Perlin Networks Life](https://github.com/perlin-network/life) as our Wasm VM because it has built-in gas metering code, but we ran into some issues - possibly just due to lack of examples - and switched to [wasmer](https://github.com/wasmerio/wasmer) which was straightforward to work with.
+We originally explored [Perlin Networks Life](https://github.com/perlin-network/life) as our Wasm VM because it has built-in gas metering code, but we ran into some issues - possibly just due to lack of examples - and switched to [wasmer](https://github.com/wasmerio/wasmer) which was straightforward to work with.
 
-To integrate the Wasm VM with the rest of our Cosmos blockchain we came up with an interesting model where a contract can act like any other account in the blockchain send messages back to the main message router as if the contract were a user that had signed a transaction. The messages that a contract sends are sent as the return value of the contract's `main` function and then run after the contract returns so there is no issue of re-entrancy.
+To integrate the Wasm VM with the rest of our Cosmos blockchain we came up with an interesting model where a contract can act like any other account in the blockchain send messages back to the main message router as if the contract were a user that had signed a transaction. The messages that a contract sends are passed as the return value of the contract's `send` function and then run after the contract returns so there is no issue of re-entrancy.
 
-In order to know whether a contract has permission to execute a specific action we needed another layer on top of Cosmos's `BaseApp` router. This functionality is handled by the `delegation` module described above which checks if the action can be executed directly by the contract of if this action was delegated by some other account.
+To know whether a contract has permission to execute a specific action we needed another layer on top of Cosmos's `BaseApp` router. This functionality is handled by the `delegation` module described above which checks if the action can be executed directly by the contract of if this action was delegated by some other account.
 
-We defined a relatively simple API for smart contracts, that covered our famer/funder/verifier use case. This could be expanded as needed in the future, but was kept to the minimal amount of complexity needed to perform the task at hand.
+We defined a relatively simple API for smart contracts, that covered our farmer/funder/verifier use case. This could be expanded as needed in the future, but was kept to the minimal amount of complexity needed to perform the task at hand.
 
-In order to run a contract, there are three steps:
+To run a contract, there are three steps:
 
 1. [Upload the smart contract wasm code](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L59). This is a large chunk (dozens of KB for now, but it can be optimized) and is stored one time, allowing us to instantiate multiple contract instances for a single piece of code without needing to upload that code multiple times.
 2. [Create a contract](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L74), which is one instance of the code. This creates a new account for this instance. It then moves any sent tokens to the contract and calls the `init` method exported by the wasm code.
 3. Once there is a contract instance, you can [call the contract](https://github.com/cosmos-gaians/cosmos-sdk/blob/hackatom/x/contract/handler.go#L83) any number of times, in order to execute the contract logic implemented in its `send` method exported from the Wasm code.
 
-Both `MsgCreateContract` and `MsgSendContract` take a set of tokens to transfer to the contract, as well as a raw `[]byte` with a contract-specific message. This message is known to the client and the Wasm code, but doesn't need to be known to the SDK code, just like Tendermint is agnostic to tx bytes. For simplicity, we chose to settle on JSON as the serialization format. We were all quite happy with this, but other methods could be used in the future.
+Both `MsgCreateContract` and `MsgSendContract` take a set of tokens to transfer to the contract, as well as a raw `[]byte` with a contract-specific message. This message is known to the client and the Wasm code, but doesn't need to be known to the SDK code, just like Tendermint is agnostic to transaction bytes. For simplicity, we chose to settle on JSON as the serialization format. We were all quite happy with this, but other methods could be used in the future.
 
 ### Looking at an example contract
 
@@ -189,6 +189,7 @@ Since building these features at the Hackathon there has been interest in the Co
 - The Cosmos Community Group on Key Management: https://github.com/cosmos-cg-key-management
 - CosmWasm (Cosmos Community Group on WebAssembly (WASM) integration): https://github.com/cosmwasm
 
-Up until now most development on Cosmos SDK has happened directly from the Cosmos team, albeit with quite a large number of contributions from different community groups. The idea of a community group or working group is to create a space where members of different organizations can collaborate on common problems without the ownership of the process falling within either organization. For these community groups, we have setup a simple structure involving a dedicated GitHub organization and a telegram channel for live discussion. Possibly this model can be replicated for other similar community efforts.
-
-We welcome community members interested in getting these features to production-level to join these groups and collaborate, and we hope these contributions bring long-lasting benefits to the community.
+Until now most development on Cosmos SDK has happened directly via the Cosmos team, albeit with quite a large number of contributions from different community groups. The idea of a community group or working group is to create a space where members of different organizations can collaborate on common problems without the ownership of the process falling under either organization. For these community groups, we have created a simple structure involving a dedicated GitHub organization and a telegram channel for live discussion. Possibly this model can be replicated for other community efforts.
+We welcome community members interested in getting these features into production to join these groups and collaborate.
+As a near-term goal, Regen Network is intending to deploy at least the key management functionality described above to its live [regen-test-1001 testnet](https://github.com/regen-network/testnets), also as a test of this [live upgrade PR](https://github.com/cosmos/cosmos-sdk/pull/4233).
+We hope these contributions bring long-lasting benefit to the community and are useful to many projects.
